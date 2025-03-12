@@ -7,7 +7,10 @@ use std::{
     net::TcpStream,
 };
 
-use models::request::Request;
+use models::{
+    request::Request,
+    response::{Response, Status},
+};
 
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -18,6 +21,10 @@ fn main() {
     for stream in listener.incoming() {
         match stream {
             Ok(mut _stream) => {
+                let s = Status::Ok;
+                let a = format!("{}", s);
+
+                println!("{}", a);
                 println!("in stream");
                 handle_connection(_stream);
             }
@@ -37,15 +44,44 @@ fn handle_connection(mut stream: TcpStream) {
         .take_while(|line| !line.is_empty())
         .collect();
 
-    // println!("Req: {:?}", req);
+    println!("Req: {:?}", req);
 
-    let new_req = Request::try_from(req).unwrap();
+    let req = Request::try_from(req).unwrap();
 
-    println!("{:?}", &new_req);
+    println!("{:?}", &req);
 
-    match !new_req.path.is_empty() {
-        true => send_404(&mut stream),
-        false => send_200(&mut stream),
+    match req.path.as_str() {
+        s if s.contains("echo") => echo(&req, &mut stream),
+        _ => send_404(&mut stream),
+    }
+
+    // match !new_req.path.is_empty() {
+    //     true => send_404(&mut stream),
+    //     false => send_200(&mut stream),
+    // }
+    //
+    // send_200(&mut stream);
+}
+
+fn echo(reguest: &Request, stream: &mut TcpStream) {
+    let req_path: Vec<&str> = reguest.path.split("/").collect();
+    let response_body = match req_path.last() {
+        Some(s) => String::from(*s),
+        None => String::new(),
+    };
+
+    let response = Response {
+        status: models::response::Status::Ok,
+        content_type: String::from("text/plain"),
+        content_length: response_body.len(),
+        body: response_body,
+    };
+
+    let res = format!("{}", response);
+    println!("Response: {:?}", res);
+
+    if let Err(e) = stream.write_all(res.into_bytes().as_slice()) {
+        eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
     }
 }
 
