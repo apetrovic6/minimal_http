@@ -52,15 +52,9 @@ fn handle_connection(mut stream: TcpStream) {
 
     match req.path.as_str() {
         s if s.contains("echo") => echo(&req, &mut stream),
+        "/" => send_200(&mut stream),
         _ => send_404(&mut stream),
     }
-
-    // match !new_req.path.is_empty() {
-    //     true => send_404(&mut stream),
-    //     false => send_200(&mut stream),
-    // }
-    //
-    // send_200(&mut stream);
 }
 
 fn echo(reguest: &Request, stream: &mut TcpStream) {
