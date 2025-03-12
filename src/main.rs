@@ -1,10 +1,13 @@
+mod models;
+
 #[allow(unused_imports)]
 use std::net::TcpListener;
 use std::{
-    io::{stdout, BufRead, BufReader, Read, Write},
-    net::{Shutdown, TcpStream},
-    str::Lines,
+    io::{BufRead, BufReader, Write},
+    net::TcpStream,
 };
+
+use models::request::Request;
 
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -34,7 +37,13 @@ fn handle_connection(mut stream: TcpStream) {
         .take_while(|line| !line.is_empty())
         .collect();
 
-    match req.join("").contains(&String::from("/abcdefg")) {
+    // println!("Req: {:?}", req);
+
+    let new_req = Request::try_from(req).unwrap();
+
+    println!("{:?}", &new_req);
+
+    match !new_req.path.is_empty() {
         true => send_404(&mut stream),
         false => send_200(&mut stream),
     }
