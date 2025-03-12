@@ -7,6 +7,7 @@ pub struct Request {
     pub host: String,
     pub user_agent: String,
     pub accept: String,
+    // pub body: String,
 }
 
 #[derive(Debug)]
@@ -15,7 +16,7 @@ pub struct ReqError {
 }
 
 impl Request {
-    fn parse_method_and_path(strings: Vec<&str>) -> Result<(&str, Method), ReqError> {
+    fn parse_method_and_path(strings: Vec<&str>) -> Result<(String, Method), ReqError> {
         let [method, path, _]: [_; 3] = strings.try_into().ok().unwrap();
 
         let method = match method.parse::<Method>() {
@@ -27,7 +28,7 @@ impl Request {
             }
         };
 
-        let path: &str = path.split('/').collect::<Vec<&str>>().get(1).unwrap();
+        let path = path.split('/').collect::<Vec<&str>>().join("/");
 
         Ok((path, method))
     }
