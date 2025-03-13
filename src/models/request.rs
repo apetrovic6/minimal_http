@@ -1,3 +1,5 @@
+use crate::user_agent;
+
 use super::method::Method;
 
 #[derive(Debug)]
@@ -64,12 +66,21 @@ impl TryFrom<Vec<String>> for Request {
 
         let host = Self::parse_host(host.split(" ").collect());
 
-        let user_agent = match value.get(2) {
-            Some(s) => s,
-            None => &String::from(""),
+        let binding = value
+            .iter()
+            .filter(|s| s.contains("User-Agent"))
+            .collect::<Vec<_>>();
+
+        let a = binding.get(0);
+
+        let user_agent: String = match binding.first() {
+            Some(s) => s.split_whitespace().last().unwrap().to_string(),
+            None => String::new(),
         };
 
-        let user_agent = Self::parse_user_agent(user_agent.split(" ").collect());
+        // let user_agent = Self::parse_user_agent(user_agent.split(" ").collect());
+
+        println!("Parsed user_agent: {:?}", user_agent);
 
         let accept = match value.get(3) {
             Some(s) => s,
@@ -82,7 +93,7 @@ impl TryFrom<Vec<String>> for Request {
             method,
             path: path.to_string(),
             host: String::from(host),
-            user_agent: String::from(user_agent),
+            user_agent: user_agent,
             accept: String::from(accept),
         })
     }
