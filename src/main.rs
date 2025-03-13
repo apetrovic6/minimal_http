@@ -1,8 +1,10 @@
 mod models;
+mod routes;
 
 #[allow(unused_imports)]
 use std::net::TcpListener;
 use std::{
+    collections::HashMap,
     io::{BufRead, BufReader, Write},
     net::TcpStream,
 };
@@ -35,7 +37,32 @@ fn main() {
     }
 }
 
+fn user_agent(request: &Request, stream: &mut TcpStream) {
+    let response = Response {
+        body: request.user_agent.clone(),
+        content_length: request.user_agent.len(),
+        content_type: String::from("text/plain"),
+        status: Status::Ok,
+    };
+    let response = format!("{}", response);
+    println!("User Agent response: {}", response);
+
+    if let Err(e) = stream.write_all(response.into_bytes().as_slice()) {
+        eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
+    }
+}
+
+fn root(request: &Request, stream: &mut TcpStream) {
+    send_200(request, stream);
+}
+
 fn handle_connection(mut stream: TcpStream) {
+    let mut routes: HashMap<String, fn(&Request, &mut TcpStream)> = HashMap::new();
+
+    routes.insert(String::from("/"), root);
+    routes.insert(String::from("echo"), echo);
+    routes.insert(String::from("user-agent"), user_agent);
+
     let buf_reader = BufReader::new(&stream);
 
     let req: Vec<_> = buf_reader
@@ -48,12 +75,18 @@ fn handle_connection(mut stream: TcpStream) {
 
     let req = Request::try_from(req).unwrap();
 
-    println!("{:?}", &req);
+    let a: Vec<_> = req.path.split("/").filter(|x| !x.is_empty()).collect::<_>();
 
-    match req.path.as_str() {
-        s if s.contains("echo") => echo(&req, &mut stream),
-        "/" => send_200(&mut stream),
-        _ => send_404(&mut stream),
+    let a = match a.first() {
+        Some(s) => String::from(*s),
+        None => String::from("/"),
+    };
+
+    println!("{:?}", a);
+
+    match routes.get_key_value(&a) {
+        Some((route, handler)) => handler(&req, &mut stream),
+        None => send_404(&req, &mut stream),
     }
 }
 
@@ -79,7 +112,7 @@ fn echo(reguest: &Request, stream: &mut TcpStream) {
     }
 }
 
-fn send_200(stream: &mut TcpStream) {
+fn send_200(request: &Request, stream: &mut TcpStream) {
     let str = String::from("HTTP/1.1 200 OK\r\n\r\n");
 
     let buf = str.into_bytes();
@@ -90,7 +123,7 @@ fn send_200(stream: &mut TcpStream) {
     }
 }
 
-fn send_404(stream: &mut TcpStream) {
+fn send_404(request: &Request, stream: &mut TcpStream) {
     let str = String::from("HTTP/1.1 404 Not Found\r\n\r\n");
 
     let buf = str.into_bytes();
