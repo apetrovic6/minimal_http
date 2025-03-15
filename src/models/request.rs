@@ -1,5 +1,3 @@
-use crate::user_agent;
-
 use super::method::Method;
 
 #[derive(Debug)]
@@ -35,14 +33,6 @@ impl Request {
         Ok((path, method))
     }
 
-    fn parse_host(strings: Vec<&str>) -> &str {
-        strings.get(1).unwrap_or(&"")
-    }
-
-    fn parse_user_agent(strings: Vec<&str>) -> &str {
-        strings.get(1).unwrap_or(&"")
-    }
-
     fn parse_accept(strings: Vec<&str>) -> &str {
         strings.get(1).unwrap_or(&"")
     }
@@ -59,28 +49,21 @@ impl TryFrom<Vec<String>> for Request {
 
         let (path, method) = Self::parse_method_and_path(method_path)?;
 
-        let host = match value.get(1) {
-            Some(s) => s,
-            None => &String::from(""),
-        };
-
-        let host = Self::parse_host(host.split(" ").collect());
-
-        let binding = value
+        let host = value
             .iter()
-            .filter(|s| s.contains("User-Agent"))
-            .collect::<Vec<_>>();
+            .find(|s| s.contains("Host"))
+            .and_then(|s| s.split_whitespace().last())
+            .map(ToString::to_string)
+            .unwrap_or_default();
 
-        let a = binding.get(0);
+        let user_agent = value
+            .iter()
+            .find(|s| s.contains("User-Agent"))
+            .and_then(|s| s.split_whitespace().last())
+            .map(ToString::to_string)
+            .unwrap_or_default();
 
-        let user_agent: String = match binding.first() {
-            Some(s) => s.split_whitespace().last().unwrap().to_string(),
-            None => String::new(),
-        };
-
-        // let user_agent = Self::parse_user_agent(user_agent.split(" ").collect());
-
-        println!("Parsed user_agent: {:?}", user_agent);
+        println!("Parsed host: {:?}", host);
 
         let accept = match value.get(3) {
             Some(s) => s,
@@ -92,8 +75,8 @@ impl TryFrom<Vec<String>> for Request {
         Ok(Self {
             method,
             path: path.to_string(),
-            host: String::from(host),
-            user_agent: user_agent,
+            host,
+            user_agent,
             accept: String::from(accept),
         })
     }
