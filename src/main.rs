@@ -9,6 +9,7 @@ use std::{
     net::TcpStream,
 };
 
+use codecrafters_http_server::ThreadPool;
 use models::{
     request::Request,
     response::{Response, Status},
@@ -20,21 +21,20 @@ fn main() {
 
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
+    let pool = ThreadPool::new(5);
+
     for stream in listener.incoming() {
         match stream {
-            Ok(mut _stream) => {
-                let s = Status::Ok;
-                let a = format!("{}", s);
-
-                println!("{}", a);
-                println!("in stream");
+            Ok(mut _stream) => pool.execute(|| {
                 handle_connection(_stream);
-            }
+            }),
             Err(e) => {
                 println!("error: {}", e);
             }
         }
     }
+
+    println!("Shutting down.");
 }
 
 fn user_agent(request: &Request, stream: &mut TcpStream) {
