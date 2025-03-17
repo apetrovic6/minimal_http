@@ -5,14 +5,16 @@ mod routes;
 use std::net::TcpListener;
 use std::{
     collections::HashMap,
-    io::{BufRead, BufReader, Write},
+    error::Error,
+    fs,
+    io::{BufRead, BufReader, Read, Write},
     net::TcpStream,
 };
 
 use codecrafters_http_server::ThreadPool;
 use models::{
-    request::Request,
-    response::{Response, Status},
+    request::{ReqError, Request},
+    response::{self, Response, Status},
 };
 
 fn main() {
@@ -37,31 +39,85 @@ fn main() {
     println!("Shutting down.");
 }
 
-fn user_agent(request: &Request, stream: &mut TcpStream) {
+fn user_agent(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
     let response = Response {
         body: request.user_agent.clone(),
         content_length: request.user_agent.len(),
         content_type: String::from("text/plain"),
         status: Status::Ok,
     };
+
     let response = format!("{}", response);
     println!("User Agent response: {}", response);
 
     if let Err(e) = stream.write_all(response.into_bytes().as_slice()) {
         eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
     }
+
+    Result::Ok(())
 }
 
-fn root(request: &Request, stream: &mut TcpStream) {
+fn files(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
+    println!("Request: {:?}", request);
+    let path = request
+        .path
+        .split("/")
+        .filter(|p| !p.is_empty())
+        .skip(1)
+        .take(1)
+        .next()
+        .ok_or(ReqError {
+            msg: "Bad request".to_string(),
+        });
+
+    println!("It werks? {:?}", path);
+
+    if let Ok(path) = path {
+        println!("Path: {}", path);
+
+        match fs::File::open(format!("/tmp/{}", path)) {
+            Ok(f) => {
+                let mut reader = BufReader::new(f);
+
+                let mut res = String::new();
+
+                reader.read_to_string(&mut res)?;
+
+                let response = Response {
+                    status: Status::Ok,
+                    content_type: String::from("application/octet-stream"),
+                    content_length: res.len(),
+                    body: res,
+                };
+                let res = format!("{}", response);
+                println!("Response: {:?}", res);
+
+                if let Err(e) = stream.write_all(res.into_bytes().as_slice()) {
+                    eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
+                }
+            }
+            Err(_) => {
+                send_404(request, stream);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn root(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
     send_200(request, stream);
+
+    Ok(())
 }
 
 fn handle_connection(mut stream: TcpStream) {
-    let mut routes: HashMap<String, fn(&Request, &mut TcpStream)> = HashMap::new();
+    let mut routes: HashMap<String, fn(&Request, &mut TcpStream) -> Result<(), Box<dyn Error>>> =
+        HashMap::new();
 
     routes.insert(String::from("/"), root);
     routes.insert(String::from("echo"), echo);
     routes.insert(String::from("user-agent"), user_agent);
+    routes.insert(String::from("files"), files);
 
     let buf_reader = BufReader::new(&stream);
 
@@ -85,12 +141,16 @@ fn handle_connection(mut stream: TcpStream) {
     println!("{:?}", a);
 
     match routes.get_key_value(&a) {
-        Some((route, handler)) => handler(&req, &mut stream),
-        None => send_404(&req, &mut stream),
+        Some((route, handler)) => {
+            handler(&req, &mut stream);
+        }
+        None => {
+            send_404(&req, &mut stream);
+        }
     }
 }
 
-fn echo(reguest: &Request, stream: &mut TcpStream) {
+fn echo(reguest: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
     let req_path: Vec<&str> = reguest.path.split("/").collect();
     let response_body = match req_path.last() {
         Some(s) => String::from(*s),
@@ -110,6 +170,8 @@ fn echo(reguest: &Request, stream: &mut TcpStream) {
     if let Err(e) = stream.write_all(res.into_bytes().as_slice()) {
         eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
     }
+
+    Ok(())
 }
 
 fn send_200(request: &Request, stream: &mut TcpStream) {
