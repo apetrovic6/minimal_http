@@ -25,18 +25,20 @@ fn main() {
     let args = env::args().last();
 
     if let Some(file_path) = args {
-        let file_name = file_path
+        let mut path_vec = file_path
             .split("/")
             .filter(|f| !f.is_empty())
-            .collect::<Vec<_>>()
-            .pop()
-            .take_if(|n| !n.is_empty() && n != &"tmp")
-            .unwrap_or_default();
+            .collect::<Vec<_>>();
 
+        let file_name = path_vec.pop().unwrap_or_default();
+
+        println!("Path {:?}", path_vec);
         println!("Filename {:?}", file_name);
 
+        let dir_builder = fs::create_dir_all(file_name);
+
         if !file_name.is_empty() {
-            let _ = fs::File::create_new(format!("/tmp/{}", file_name))
+            let _ = fs::File::create_new(file_name)
                 .and_then(|mut a| a.write("Hello, World!".as_bytes()));
         }
     }
