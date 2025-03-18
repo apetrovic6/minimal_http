@@ -32,15 +32,16 @@ fn main() {
 
         let file_name = path_vec.pop().unwrap_or_default();
 
-        println!("Path {:?}", path_vec);
+        println!("Path {:?}", file_path);
+        println!("Path vec {:?}", path_vec);
         println!("Filename {:?}", file_name);
 
-        let dir_builder = fs::create_dir_all(file_name);
+        let dir_builder = fs::create_dir_all(file_path);
 
-        if !file_name.is_empty() {
-            let _ = fs::File::create_new(file_name)
-                .and_then(|mut a| a.write("Hello, World!".as_bytes()));
-        }
+        // if !file_name.is_empty() {
+        //     let _ = fs::File::create_new(file_name)
+        //         .and_then(|mut a| a.write("Hello, World!".as_bytes()));
+        // }
     }
 
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
