@@ -15,7 +15,7 @@ use std::{
 use codecrafters_http_server::ThreadPool;
 use models::{
     request::{ReqError, Request},
-    response::{self, Response, Status},
+    response::{Response, Status},
 };
 
 fn main() {
