@@ -22,27 +22,9 @@ fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
 
-    let args = env::args().last();
-
-    if let Some(file_path) = args {
-        let mut path_vec = file_path
-            .split("/")
-            .filter(|f| !f.is_empty())
-            .collect::<Vec<_>>();
-
-        let file_name = path_vec.pop().unwrap_or_default();
-
-        println!("Path {:?}", file_path);
-        println!("Path vec {:?}", path_vec);
-        println!("Filename {:?}", file_name);
-
-        let dir_builder = fs::create_dir_all(file_path);
-
-        // if !file_name.is_empty() {
-        //     let _ = fs::File::create_new(file_name)
-        //         .and_then(|mut a| a.write("Hello, World!".as_bytes()));
-        // }
-    }
+    if let Some(file_path) = read_dir_name_from_env() {
+        let _ = fs::create_dir_all(file_path);
+    };
 
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
@@ -80,8 +62,24 @@ fn user_agent(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn E
     Result::Ok(())
 }
 
+fn read_dir_name_from_env() -> Option<String> {
+    let file_path = env::args().last();
+
+    // let mut path_vec = file_path
+    //     .split("/")
+    //     .filter(|f| !f.is_empty())
+    //     .collect::<Vec<_>>();
+
+    println!("Path {:?}", file_path);
+    // println!("Path vec {:?}", path_vec);
+    //
+    file_path
+}
+
 fn files(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
     println!("Request: {:?}", request);
+
+    let file_path = read_dir_name_from_env();
     let path = request
         .path
         .split("/")
@@ -98,7 +96,7 @@ fn files(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>
     if let Ok(path) = path {
         println!("Path: {}", path);
 
-        match fs::File::open(format!("/tmp/{}", path)) {
+        match fs::File::open(format!("{}{}", file_path.unwrap(), path)) {
             Ok(f) => {
                 let mut reader = BufReader::new(f);
 
