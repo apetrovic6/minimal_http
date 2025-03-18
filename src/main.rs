@@ -5,6 +5,7 @@ mod routes;
 use std::net::TcpListener;
 use std::{
     collections::HashMap,
+    env,
     error::Error,
     fs,
     io::{BufRead, BufReader, Read, Write},
@@ -20,6 +21,25 @@ use models::{
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
+
+    let args = env::args().last();
+
+    if let Some(file_path) = args {
+        let file_name = file_path
+            .split("/")
+            .filter(|f| !f.is_empty())
+            .collect::<Vec<_>>()
+            .pop()
+            .take_if(|n| !n.is_empty() && n != &"tmp")
+            .unwrap_or_default();
+
+        println!("Filename {:?}", file_name);
+
+        if !file_name.is_empty() {
+            let _ = fs::File::create_new(format!("/tmp/{}", file_name))
+                .and_then(|mut a| a.write("Hello, World!".as_bytes()));
+        }
+    }
 
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
