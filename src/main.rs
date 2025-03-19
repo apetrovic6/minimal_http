@@ -63,17 +63,7 @@ fn user_agent(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn E
 }
 
 fn read_dir_name_from_env() -> Option<String> {
-    let file_path = env::args().last();
-
-    // let mut path_vec = file_path
-    //     .split("/")
-    //     .filter(|f| !f.is_empty())
-    //     .collect::<Vec<_>>();
-
-    println!("Path {:?}", file_path);
-    // println!("Path vec {:?}", path_vec);
-    //
-    file_path
+    env::args().last()
 }
 
 fn files(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {

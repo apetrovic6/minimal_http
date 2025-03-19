@@ -49,14 +49,6 @@ impl ThreadPool {
         let job = Box::new(f);
         self.sender.as_ref().unwrap().send(job).unwrap();
     }
-
-    // pub fn spawn<F, T>(f: F) -> thread::JoinHandle<T>
-    // where
-    //     F: FnOnce() -> T,
-    //     F: Send + 'static,
-    //     T: Send + 'static,
-    // {
-    // }
 }
 
 impl Drop for ThreadPool {
