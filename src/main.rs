@@ -4,16 +4,17 @@ mod routes;
 #[allow(unused_imports)]
 use std::net::TcpListener;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     env,
     error::Error,
     fs,
-    io::{BufRead, BufReader, Read, Write},
+    io::{self, BufRead, BufReader, Read, Write},
     net::TcpStream,
 };
 
 use codecrafters_http_server::ThreadPool;
 use models::{
+    method::Method,
     request::{ReqError, Request},
     response::{Response, Status},
 };
@@ -121,26 +122,60 @@ fn root(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
     Ok(())
 }
 
+type MethodHandlerMap = HashMap<Method, RequestHandler>;
+
+type RequestHandler = fn(&Request, &mut TcpStream) -> Result<(), Box<dyn Error>>;
+
+fn files_body(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
+    Ok(())
+}
+
+fn setup_routes() -> HashMap<String, MethodHandlerMap> {
+    let mut routes: HashMap<String, MethodHandlerMap> = HashMap::new();
+
+    let mut root_map: MethodHandlerMap = HashMap::new();
+    root_map.insert(Method::Get, root);
+
+    let mut echo_map: MethodHandlerMap = HashMap::new();
+    echo_map.insert(Method::Get, echo);
+
+    let mut user_agent_map: MethodHandlerMap = HashMap::new();
+    user_agent_map.insert(Method::Get, user_agent);
+
+    let mut files_map: MethodHandlerMap = HashMap::new();
+    files_map.insert(Method::Get, files);
+    files_map.insert(Method::Post, files_body);
+
+    routes.insert(String::from("/"), root_map);
+    routes.insert(String::from("echo"), echo_map);
+    routes.insert(String::from("user-agent"), user_agent_map);
+    routes.insert(String::from("files"), files_map);
+
+    routes
+}
+
 fn handle_connection(mut stream: TcpStream) {
-    let mut routes: HashMap<String, fn(&Request, &mut TcpStream) -> Result<(), Box<dyn Error>>> =
-        HashMap::new();
+    let mut routes = setup_routes();
 
-    routes.insert(String::from("/"), root);
-    routes.insert(String::from("echo"), echo);
-    routes.insert(String::from("user-agent"), user_agent);
-    routes.insert(String::from("files"), files);
-
-    let buf_reader = BufReader::new(&stream);
+    let mut buf_reader = BufReader::new(&stream);
 
     let req: Vec<_> = buf_reader
         .lines()
         .map(|res| res.unwrap())
+        .filter(|s| !s.is_empty())
         .take_while(|line| !line.is_empty())
-        .collect();
+        .collect::<Vec<_>>();
 
-    println!("Req: {:?}", req);
+    // println!("Req: {:?}", req);
 
     let req = Request::try_from(req).unwrap();
+
+    // let mut buf_reader = BufReader::new(&stream);
+    // let mut body = vec![0u8; req.content_length];
+    // buf_reader.read_exact(&mut body);
+    // println!("Body: {:?}", body);
+
+    // TODO:  Extract content length and type, then read the body in
 
     let a: Vec<_> = req.path.split("/").filter(|x| !x.is_empty()).collect::<_>();
 
@@ -152,8 +187,19 @@ fn handle_connection(mut stream: TcpStream) {
     println!("{:?}", a);
 
     match routes.get_key_value(&a) {
-        Some((route, handler)) => {
-            handler(&req, &mut stream);
+        Some((route, route_handler)) => {
+            let entry = route_handler.get_key_value(&req.method);
+
+            match entry {
+                Some((m, handler)) => {
+                    println!("Method: {:?}", m);
+
+                    let _ = handler(&req, &mut stream);
+                }
+                None => send_404(&req, &mut stream),
+            }
+
+            // (route_handler.handler)(&req, &mut stream);
         }
         None => {
             send_404(&req, &mut stream);
