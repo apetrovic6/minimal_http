@@ -7,7 +7,9 @@ pub struct Request {
     pub host: String,
     pub user_agent: String,
     pub accept: String,
-    // pub body: String,
+    pub content_type: String,
+    pub content_length: usize,
+    pub body: String,
 }
 
 #[derive(Debug)]
@@ -63,6 +65,22 @@ impl TryFrom<Vec<String>> for Request {
             .map(ToString::to_string)
             .unwrap_or_default();
 
+        let content_length = value
+            .iter()
+            .find(|s| s.contains("Content-Length"))
+            .and_then(|s| s.split_whitespace().last())
+            .map(ToString::to_string)
+            .unwrap_or_default()
+            .parse::<usize>()
+            .unwrap_or_default();
+
+        let content_type = value
+            .iter()
+            .find(|s| s.contains("Content-Type"))
+            .and_then(|s| s.split_whitespace().last())
+            .map(ToString::to_string)
+            .unwrap_or_default();
+
         println!("Parsed host: {:?}", host);
 
         let accept = match value.get(3) {
@@ -78,6 +96,9 @@ impl TryFrom<Vec<String>> for Request {
             host,
             user_agent,
             accept: String::from(accept),
+            content_type,
+            content_length,
+            body: String::new(),
         })
     }
 }
