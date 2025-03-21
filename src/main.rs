@@ -4,11 +4,11 @@ mod routes;
 #[allow(unused_imports)]
 use std::net::TcpListener;
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     env,
     error::Error,
     fs,
-    io::{self, BufRead, BufReader, Read, Write},
+    io::{BufReader, Read, Write},
     net::TcpStream,
 };
 
