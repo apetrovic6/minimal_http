@@ -5,15 +5,17 @@ pub struct Response {
     pub status: Status,
     pub content_type: String,
     pub content_length: usize,
-    pub body: String,
+    pub body: Option<String>,
 }
 
 impl Display for Response {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let body_str = self.body.as_deref().unwrap_or("");
+
         write!(
             f,
             "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n\r\n{}",
-            self.status, self.content_type, self.content_length, self.body
+            self.status, self.content_type, self.content_length, body_str
         )
     }
 }

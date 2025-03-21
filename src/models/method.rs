@@ -23,3 +23,9 @@ impl FromStr for Method {
         }
     }
 }
+
+impl Default for Method {
+    fn default() -> Self {
+        Method::Get
+    }
+}
