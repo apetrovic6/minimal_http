@@ -47,7 +47,7 @@ fn main() {
 
 fn user_agent(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
     let response = Response {
-        body: request.user_agent.clone(),
+        body: Some(request.user_agent.clone()),
         content_length: request.user_agent.len(),
         content_type: String::from("text/plain"),
         status: Status::Ok,
@@ -99,7 +99,7 @@ fn files(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>
                     status: Status::Ok,
                     content_type: String::from("application/octet-stream"),
                     content_length: res.len(),
-                    body: res,
+                    body: Some(res),
                 };
                 let res = format!("{}", response);
                 println!("Response: {:?}", res);
@@ -127,6 +127,32 @@ type MethodHandlerMap = HashMap<Method, RequestHandler>;
 type RequestHandler = fn(&Request, &mut TcpStream) -> Result<(), Box<dyn Error>>;
 
 fn files_body(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
+    println!("in files body: {:?}", request);
+
+    if let Some(dir) = read_dir_name_from_env() {
+        fs::create_dir_all(&dir)?;
+
+        let path = request
+            .path
+            .split("/")
+            .filter(|p| !p.is_empty())
+            .skip(1)
+            .take(1)
+            .next()
+            .ok_or(ReqError {
+                msg: "Bad request".to_string(),
+            });
+
+        println!("It werks? {:?}", path);
+
+        let file_path_name = format!("{}/{}", dir, path.unwrap());
+        let mut file = fs::File::create_new(&file_path_name)?;
+
+        file.write_all(request.body.as_bytes())?;
+
+        println!("file path name: {:?}", &file_path_name);
+        send_201(request, stream);
+    }
     Ok(())
 }
 
@@ -154,29 +180,13 @@ fn setup_routes() -> HashMap<String, MethodHandlerMap> {
     routes
 }
 
-fn handle_connection(mut stream: TcpStream) {
+fn handle_connection(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
     let mut routes = setup_routes();
 
-    let mut buf_reader = BufReader::new(&stream);
+    let req = Request::try_from(&mut stream).unwrap();
 
-    let req: Vec<_> = buf_reader
-        .lines()
-        .map(|res| res.unwrap())
-        .filter(|s| !s.is_empty())
-        .take_while(|line| !line.is_empty())
-        .collect::<Vec<_>>();
-
-    // println!("Req: {:?}", req);
-
-    let req = Request::try_from(req).unwrap();
-
-    // let mut buf_reader = BufReader::new(&stream);
-    // let mut body = vec![0u8; req.content_length];
-    // buf_reader.read_exact(&mut body);
-    // println!("Body: {:?}", body);
-
-    // TODO:  Extract content length and type, then read the body in
-
+    println!("Req object: {:?}", req);
+    //  TODO:  Extract content length and type, then read the body in
     let a: Vec<_> = req.path.split("/").filter(|x| !x.is_empty()).collect::<_>();
 
     let a = match a.first() {
@@ -205,6 +215,7 @@ fn handle_connection(mut stream: TcpStream) {
             send_404(&req, &mut stream);
         }
     }
+    Ok(())
 }
 
 fn echo(reguest: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
@@ -218,7 +229,7 @@ fn echo(reguest: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
         status: models::response::Status::Ok,
         content_type: String::from("text/plain"),
         content_length: response_body.len(),
-        body: response_body,
+        body: Some(response_body),
     };
 
     let res = format!("{}", response);
@@ -238,6 +249,22 @@ fn send_200(request: &Request, stream: &mut TcpStream) {
 
     println!("sending 200");
     if let Err(e) = stream.write_all(buf.as_slice()) {
+        eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
+    }
+}
+
+fn send_201(request: &Request, stream: &mut TcpStream) {
+    let response = Response {
+        status: models::response::Status::Created,
+        content_type: String::from("text/plain"),
+        content_length: 0,
+        body: None,
+    };
+
+    let response = format!("{}", response);
+
+    println!("sending 201");
+    if let Err(e) = stream.write_all(response.into_bytes().as_slice()) {
         eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
     }
 }
