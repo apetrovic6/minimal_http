@@ -1,10 +1,9 @@
 use std::{
     io::{BufRead, BufReader, Read},
-    iter::empty,
     net::TcpStream,
 };
 
-use super::method::Method;
+use super::{encoding::EncodingType, method::Method};
 
 #[derive(Debug, Default)]
 pub struct Request {
@@ -15,8 +14,7 @@ pub struct Request {
     pub accept: String,
     pub content_type: String,
     pub content_length: usize,
-    pub accept_encoding: String,
-    pub content_encoding: String,
+    pub accept_encoding: Vec<EncodingType>,
     pub body: String,
 }
 
@@ -44,12 +42,26 @@ impl Request {
         Ok((path, method))
     }
 
-    fn parse_string_from_header(query: &str, headers: &Vec<String>) -> String {
+    fn parse_string_from_header(query: &str, headers: &[String]) -> String {
         headers
             .iter()
             .find(|s| s.contains(query))
             .and_then(|s| s.split_whitespace().last())
             .map(ToString::to_string)
+            .unwrap_or_default()
+    }
+
+    fn parse_encodings_from_header(query: &str, headers: &[String]) -> Vec<String> {
+        headers
+            .iter()
+            .find(|s| s.contains(query))
+            .map(|s| {
+                s.split_whitespace()
+                    .map(ToString::to_string)
+                    .skip(1)
+                    .map(|w| w.trim_end_matches(',').to_string())
+                    .collect::<Vec<_>>()
+            })
             .unwrap_or_default()
     }
 
@@ -80,14 +92,23 @@ impl Request {
         let host = Self::parse_string_from_header("Host", &headers);
         let user_agent = Self::parse_string_from_header("User-Agent", &headers);
         let content_type = Self::parse_string_from_header("Content-Type", &headers);
-        let accept_encoding = Self::parse_string_from_header("Accept-Encoding", &headers);
         let accept = Self::parse_string_from_header("Accept", &headers);
+        let accept_encoding = Self::parse_encodings_from_header("Accept-Encoding", &headers);
 
         let mut body_bytes = vec![0u8; content_length];
 
-        buf_reader.read_exact(&mut body_bytes);
+        let _ = buf_reader.read_exact(&mut body_bytes);
 
         println!("Body: {:?}", body_bytes);
+        println!("Accept Encoding header: {:?}", accept_encoding);
+
+        let encodings = accept_encoding
+            .iter()
+            .map(|e| e.parse::<EncodingType>().unwrap())
+            .collect::<Vec<_>>();
+
+        println!("Converted Encoding: {:?}", encodings);
+
         request.host = host;
         request.content_type = content_type;
         request.accept = accept;
@@ -95,7 +116,7 @@ impl Request {
         request.content_length = content_length;
         request.method = method;
         request.path = path;
-        request.accept_encoding = accept_encoding;
+        request.accept_encoding = encodings;
         request.body = String::from_utf8(body_bytes).unwrap();
     }
 }

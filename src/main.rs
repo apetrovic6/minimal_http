@@ -15,6 +15,7 @@ use std::{
 
 use codecrafters_http_server::ThreadPool;
 use models::{
+    encoding::EncodingType,
     method::Method,
     request::{self, ReqError, Request},
     response::{Response, Status},
@@ -227,10 +228,10 @@ fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
         None => String::new(),
     };
 
-    let encoding = if request.accept_encoding == "gzip" {
-        String::from("gzip")
+    let encoding = if request.accept_encoding.contains(&EncodingType::Gzip) {
+        EncodingType::Gzip
     } else {
-        String::new()
+        EncodingType::None
     };
 
     let response = Response {
@@ -238,7 +239,7 @@ fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
         content_type: String::from("text/plain"),
         content_length: response_body.len(),
         body: Some(response_body),
-        content_encoding: encoding,
+        content_encoding: encoding.to_string(),
     };
 
     let res = format!("{}", response);
