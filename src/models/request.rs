@@ -15,6 +15,8 @@ pub struct Request {
     pub accept: String,
     pub content_type: String,
     pub content_length: usize,
+    pub accept_encoding: String,
+    pub content_encoding: String,
     pub body: String,
 }
 
@@ -78,7 +80,8 @@ impl Request {
         let host = Self::parse_string_from_header("Host", &headers);
         let user_agent = Self::parse_string_from_header("User-Agent", &headers);
         let content_type = Self::parse_string_from_header("Content-Type", &headers);
-        let accept = Self::parse_string_from_header("Content-Type", &headers);
+        let accept_encoding = Self::parse_string_from_header("Accept-Encoding", &headers);
+        let accept = Self::parse_string_from_header("Accept", &headers);
 
         let mut body_bytes = vec![0u8; content_length];
 
@@ -92,6 +95,7 @@ impl Request {
         request.content_length = content_length;
         request.method = method;
         request.path = path;
+        request.accept_encoding = accept_encoding;
         request.body = String::from_utf8(body_bytes).unwrap();
     }
 }

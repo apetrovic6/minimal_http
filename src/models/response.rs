@@ -1,10 +1,11 @@
 use std::fmt::{self, Display};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Response {
     pub status: Status,
     pub content_type: String,
     pub content_length: usize,
+    pub content_encoding: String,
     pub body: Option<String>,
 }
 
@@ -14,14 +15,15 @@ impl Display for Response {
 
         write!(
             f,
-            "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n\r\n{}",
-            self.status, self.content_type, self.content_length, body_str
+            "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nContent-Encoding: {}\r\n\r\n{}",
+            self.status, self.content_type, self.content_length, self.content_encoding, body_str
         )
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub enum Status {
+    #[default]
     Ok = 200,
     Created = 201,
     Accepted = 202,

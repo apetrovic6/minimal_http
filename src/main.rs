@@ -1,11 +1,12 @@
 mod models;
 mod routes;
+mod server;
 
 #[allow(unused_imports)]
 use std::net::TcpListener;
 use std::{
     collections::HashMap,
-    env,
+    default, env,
     error::Error,
     fs,
     io::{BufReader, Read, Write},
@@ -15,9 +16,10 @@ use std::{
 use codecrafters_http_server::ThreadPool;
 use models::{
     method::Method,
-    request::{ReqError, Request},
+    request::{self, ReqError, Request},
     response::{Response, Status},
 };
+use server::{App, MethodHandlerMap};
 
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -27,11 +29,13 @@ fn main() {
         let _ = fs::create_dir_all(file_path);
     };
 
-    let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
+    // let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
+
+    let app = App::new("127.0.0.1:4221").build();
 
     let pool = ThreadPool::new(5);
 
-    for stream in listener.incoming() {
+    for stream in app.listener.incoming() {
         match stream {
             Ok(mut _stream) => pool.execute(|| {
                 handle_connection(_stream);
@@ -51,6 +55,7 @@ fn user_agent(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn E
         content_length: request.user_agent.len(),
         content_type: String::from("text/plain"),
         status: Status::Ok,
+        ..Default::default()
     };
 
     let response = format!("{}", response);
@@ -100,6 +105,7 @@ fn files(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>
                     content_type: String::from("application/octet-stream"),
                     content_length: res.len(),
                     body: Some(res),
+                    ..Default::default()
                 };
                 let res = format!("{}", response);
                 println!("Response: {:?}", res);
@@ -121,10 +127,6 @@ fn root(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
 
     Ok(())
 }
-
-type MethodHandlerMap = HashMap<Method, RequestHandler>;
-
-type RequestHandler = fn(&Request, &mut TcpStream) -> Result<(), Box<dyn Error>>;
 
 fn files_body(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
     println!("in files body: {:?}", request);
@@ -218,11 +220,17 @@ fn handle_connection(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn echo(reguest: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
-    let req_path: Vec<&str> = reguest.path.split("/").collect();
+fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
+    let req_path: Vec<&str> = request.path.split("/").collect();
     let response_body = match req_path.last() {
         Some(s) => String::from(*s),
         None => String::new(),
+    };
+
+    let encoding = if request.accept_encoding == "gzip" {
+        String::from("gzip")
+    } else {
+        String::new()
     };
 
     let response = Response {
@@ -230,6 +238,7 @@ fn echo(reguest: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
         content_type: String::from("text/plain"),
         content_length: response_body.len(),
         body: Some(response_body),
+        content_encoding: encoding,
     };
 
     let res = format!("{}", response);
@@ -259,6 +268,7 @@ fn send_201(request: &Request, stream: &mut TcpStream) {
         content_type: String::from("text/plain"),
         content_length: 0,
         body: None,
+        ..Default::default()
     };
 
     let response = format!("{}", response);
