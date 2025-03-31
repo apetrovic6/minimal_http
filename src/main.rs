@@ -236,9 +236,7 @@ fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
 
     let ugala = if encoding == EncodingType::Gzip {
         let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-        encoder
-            .write_all(&request.body.clone().into_bytes())
-            .unwrap();
+        encoder.write_all(&response_body.into_bytes()).unwrap();
         encoder.finish().unwrap()
     } else {
         Vec::from(request.body.as_bytes())
