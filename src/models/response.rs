@@ -6,18 +6,22 @@ pub struct Response {
     pub content_type: String,
     pub content_length: usize,
     pub content_encoding: String,
-    pub body: Option<String>,
+    pub body: Option<Vec<u8>>,
 }
 
-impl Display for Response {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let body_str = self.body.as_deref().unwrap_or("");
+impl Response {
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let body = self.body.as_deref().unwrap_or(&[]);
 
-        write!(
-            f,
-            "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nContent-Encoding: {}\r\n\r\n{}",
-            self.status, self.content_type, self.content_length, self.content_encoding, body_str
-        )
+        let headers = format!(
+            "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nContent-Encoding: {}\r\n\r\n",
+            self.status, self.content_type, self.content_length, self.content_encoding
+        );
+        let mut response = Vec::with_capacity(headers.len() + body.len());
+        response.extend_from_slice(headers.as_bytes());
+        response.extend_from_slice(body);
+
+        response
     }
 }
 

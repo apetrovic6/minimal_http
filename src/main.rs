@@ -8,12 +8,14 @@ use std::{
     collections::HashMap,
     default, env,
     error::Error,
-    fs,
-    io::{BufReader, Read, Write},
+    fs::{self, File},
+    io::{BufRead, BufReader, BufWriter, Read, Write},
     net::TcpStream,
+    time::Instant,
 };
 
 use codecrafters_http_server::ThreadPool;
+use flate2::{write::GzEncoder, Compression};
 use models::{
     encoding::EncodingType,
     method::Method,
@@ -52,17 +54,16 @@ fn main() {
 
 fn user_agent(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
     let response = Response {
-        body: Some(request.user_agent.clone()),
+        body: Some(request.user_agent.clone().into_bytes()),
         content_length: request.user_agent.len(),
         content_type: String::from("text/plain"),
         status: Status::Ok,
         ..Default::default()
     };
 
-    let response = format!("{}", response);
-    println!("User Agent response: {}", response);
+    println!("User Agent response: {:?}", response);
 
-    if let Err(e) = stream.write_all(response.into_bytes().as_slice()) {
+    if let Err(e) = stream.write_all(&response.to_bytes()) {
         eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
     }
 
@@ -105,13 +106,12 @@ fn files(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>
                     status: Status::Ok,
                     content_type: String::from("application/octet-stream"),
                     content_length: res.len(),
-                    body: Some(res),
+                    body: Some(res.into_bytes()),
                     ..Default::default()
                 };
-                let res = format!("{}", response);
-                println!("Response: {:?}", res);
+                println!("Response: {:?}", response);
 
-                if let Err(e) = stream.write_all(res.into_bytes().as_slice()) {
+                if let Err(e) = stream.write_all(&response.to_bytes()) {
                     eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
                 }
             }
@@ -234,18 +234,25 @@ fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
         EncodingType::None
     };
 
+    let ugala = if encoding == EncodingType::Gzip {
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+        encoder
+            .write_all(&request.body.clone().into_bytes())
+            .unwrap();
+        encoder.finish().unwrap()
+    } else {
+        Vec::from(request.body.as_bytes())
+    };
+
     let response = Response {
         status: models::response::Status::Ok,
         content_type: String::from("text/plain"),
-        content_length: response_body.len(),
-        body: Some(response_body),
+        content_length: ugala.len(),
+        body: Some(ugala),
         content_encoding: encoding.to_string(),
     };
 
-    let res = format!("{}", response);
-    println!("Response: {:?}", res);
-
-    if let Err(e) = stream.write_all(res.into_bytes().as_slice()) {
+    if let Err(e) = stream.write_all(&response.to_bytes()) {
         eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
     }
 
@@ -272,10 +279,8 @@ fn send_201(request: &Request, stream: &mut TcpStream) {
         ..Default::default()
     };
 
-    let response = format!("{}", response);
-
     println!("sending 201");
-    if let Err(e) = stream.write_all(response.into_bytes().as_slice()) {
+    if let Err(e) = stream.write_all(&response.to_bytes()) {
         eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
     }
 }
