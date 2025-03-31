@@ -239,7 +239,7 @@ fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
         encoder.write_all(&response_body.into_bytes()).unwrap();
         encoder.finish().unwrap()
     } else {
-        Vec::from(request.body.as_bytes())
+        Vec::from(response_body.as_bytes())
     };
 
     let response = Response {
