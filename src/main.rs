@@ -13,7 +13,6 @@ use std::{
     net::TcpStream,
 };
 
-use codecrafters_http_server::ThreadPool;
 use flate2::{write::GzEncoder, Compression};
 use models::{
     encoding::EncodingType,
@@ -36,27 +35,10 @@ fn main() {
         let _ = fs::create_dir_all(file_path);
     };
 
-    // let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
-
-    let app = App::new("127.0.0.1:4221")
+    App::new("127.0.0.1:4221")
         .get("manjo".to_string(), manjo_handler)
         .build()
         .run();
-
-    println!("App is this: {:?}", app);
-
-    // let pool = ThreadPool::new(5);
-    //
-    // for stream in app.listener.incoming() {
-    //     match stream {
-    //         Ok(mut _stream) => pool.execute(|| {
-    //             handle_connection(_stream);
-    //         }),
-    //         Err(e) => {
-    //             println!("error: {}", e);
-    //         }
-    //     }
-    // }
 
     println!("Shutting down.");
 }

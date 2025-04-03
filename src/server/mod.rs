@@ -40,23 +40,22 @@ impl App {
         }
     }
 
-    pub fn build(self) -> Self {
-        Self {
+    pub fn build(self) -> Arc<Self> {
+        Arc::new(Self {
             listener: self.listener,
             routes: self.routes,
             pool: self.pool,
-        }
+        })
     }
 
-    pub fn run(self) {
+    pub fn run(self: Arc<Self>) {
         for stream in self.listener.incoming() {
             match stream {
                 Ok(stream) => {
-                    let routes = Arc::clone(&self.routes);
+                    let app = Arc::clone(&self);
 
                     self.pool.execute(move || {
-                        // use method on Arc<ThreadPoolp> here
-                        App::handle_connection(routes, stream).unwrap_or_else(|e| {
+                        app.handle_connection(stream).unwrap_or_else(|e| {
                             eprintln!("Connection error: {:?}", e);
                         });
                     });
@@ -68,11 +67,7 @@ impl App {
         }
     }
 
-    fn handle_connection(
-        // &self,
-        routes: Arc<HashMap<String, MethodHandlerMap>>,
-        mut stream: TcpStream,
-    ) -> Result<(), Box<dyn Error>> {
+    fn handle_connection(&self, mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
         let req = Request::try_from(&mut stream).unwrap();
 
         println!("Req object: {:?}", req);
@@ -86,7 +81,7 @@ impl App {
 
         println!("{:?}", a);
 
-        match routes.get_key_value(&a) {
+        match self.routes.get_key_value(&a) {
             Some((route, route_handler)) => {
                 let entry = route_handler.get_key_value(&req.method);
 
