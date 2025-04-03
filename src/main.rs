@@ -33,7 +33,8 @@ fn main() {
         .get("/", root)
         .get("echo", echo)
         .get("user-agent", user_agent)
-        .post("echo", test_post)
+        .get("files", files)
+        .post("files", files_body)
         .build()
         .run();
 

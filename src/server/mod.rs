@@ -137,3 +137,5 @@ impl App {
 pub type MethodHandlerMap = HashMap<Method, RequestHandler>;
 
 pub type RequestHandler = fn(&Request, &mut TcpStream) -> Result<(), Box<dyn Error>>;
+
+pub type Router = HashMap<String, MethodHandlerMap>;
