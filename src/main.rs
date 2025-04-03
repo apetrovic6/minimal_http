@@ -1,11 +1,11 @@
 mod models;
+mod router;
 mod routes;
 mod server;
 
 #[allow(unused_imports)]
 use std::net::TcpListener;
 use std::{
-    collections::HashMap,
     env,
     error::Error,
     fs::{self},
@@ -16,11 +16,11 @@ use std::{
 use flate2::{write::GzEncoder, Compression};
 use models::{
     encoding::EncodingType,
-    method::Method,
     request::{ReqError, Request},
     response::{Response, Status},
 };
-use server::{App, MethodHandlerMap};
+use router::Router;
+use server::App;
 
 fn main() {
     println!("Logs from your program will appear here!");
@@ -29,22 +29,19 @@ fn main() {
         let _ = fs::create_dir_all(file_path);
     };
 
+    let file_router = Router::new("files").get("", files).post("", files_body);
+
     App::new("127.0.0.1:4221")
         .get("/", root)
         .get("echo", echo)
         .get("user-agent", user_agent)
-        .get("files", files)
-        .post("files", files_body)
+        .with_router(file_router)
+        // .get("files", files)
+        // .post("files", files_body)
         .build()
         .run();
 
     println!("Shutting down.");
-}
-
-fn test_post(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
-    println!("Post succesfull");
-
-    Result::Ok(())
 }
 
 fn user_agent(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
@@ -152,30 +149,6 @@ fn files_body(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn E
         send_201(request, stream);
     }
     Ok(())
-}
-
-fn setup_routes() -> HashMap<String, MethodHandlerMap> {
-    let mut routes: HashMap<String, MethodHandlerMap> = HashMap::new();
-
-    let mut root_map: MethodHandlerMap = HashMap::new();
-    root_map.insert(Method::Get, root);
-
-    let mut echo_map: MethodHandlerMap = HashMap::new();
-    echo_map.insert(Method::Get, echo);
-
-    let mut user_agent_map: MethodHandlerMap = HashMap::new();
-    user_agent_map.insert(Method::Get, user_agent);
-
-    let mut files_map: MethodHandlerMap = HashMap::new();
-    files_map.insert(Method::Get, files);
-    files_map.insert(Method::Post, files_body);
-
-    routes.insert(String::from("/"), root_map);
-    routes.insert(String::from("echo"), echo_map);
-    routes.insert(String::from("user-agent"), user_agent_map);
-    routes.insert(String::from("files"), files_map);
-
-    routes
 }
 
 fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {

@@ -8,11 +8,14 @@ use std::{
 
 use codecrafters_http_server::ThreadPool;
 
-use crate::models::{method::Method, request::Request};
+use crate::{
+    models::{method::Method, request::Request},
+    router::Router,
+};
 
 #[derive(Debug)]
 pub struct App {
-    pub listener: TcpListener,
+    listener: TcpListener,
     routes: HashMap<String, MethodHandlerMap>,
     pool: ThreadPool,
 }
@@ -60,6 +63,8 @@ impl App {
             ..self
         }
     }
+
+    pub fn add_router(self) {}
 
     pub fn build(self) -> Arc<Self> {
         Arc::new(self)
@@ -122,6 +127,17 @@ impl App {
         Ok(())
     }
 
+    pub fn with_router(mut self, router: Router) -> Self {
+        for (route, handlers) in router.into_routes() {
+            let entry = self.routes.entry(route).or_default();
+            for (method, handler) in handlers {
+                entry.insert(method, handler);
+            }
+        }
+
+        self
+    }
+
     fn send_404(request: &Request, stream: &mut TcpStream) {
         let str = String::from("HTTP/1.1 404 Not Found\r\n\r\n");
 
@@ -137,5 +153,3 @@ impl App {
 pub type MethodHandlerMap = HashMap<Method, RequestHandler>;
 
 pub type RequestHandler = fn(&Request, &mut TcpStream) -> Result<(), Box<dyn Error>>;
-
-pub type Router = HashMap<String, MethodHandlerMap>;
