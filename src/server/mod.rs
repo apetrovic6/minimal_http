@@ -34,18 +34,13 @@ impl App {
         entry.entry(Method::Get).or_insert_with(|| handler);
 
         Self {
-            listener: self.listener,
             routes: self.routes,
-            pool: self.pool,
+            ..self
         }
     }
 
     pub fn build(self) -> Arc<Self> {
-        Arc::new(Self {
-            listener: self.listener,
-            routes: self.routes,
-            pool: self.pool,
-        })
+        Arc::new(self)
     }
 
     pub fn run(self: Arc<Self>) {

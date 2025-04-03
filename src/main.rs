@@ -22,11 +22,6 @@ use models::{
 };
 use server::{App, MethodHandlerMap};
 
-fn manjo_handler(req: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
-    println!("Jebem boga\nReq:{:?}", req);
-    Ok(())
-}
-
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
@@ -36,7 +31,8 @@ fn main() {
     };
 
     App::new("127.0.0.1:4221")
-        .get("manjo".to_string(), manjo_handler)
+        .get("user-agent".to_string(), user_agent)
+        .get("echo".to_string(), echo)
         .build()
         .run();
 
