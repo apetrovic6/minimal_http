@@ -20,7 +20,7 @@ pub struct App {
 impl App {
     pub fn new<T: ToSocketAddrs>(addr: T) -> Self {
         Self {
-            listener: TcpListener::bind(addr).unwrap(),
+            listener: TcpListener::bind(addr).expect("Invalid bind address."),
             routes: HashMap::new(),
             pool: ThreadPool::new(5),
         }
