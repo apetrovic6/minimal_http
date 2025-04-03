@@ -85,6 +85,7 @@ impl Request {
 
         let method_path: Vec<&str> = headers.first().unwrap().split(' ').collect();
 
+        // TODO: Try figuring out the path with PathBuf::from()
         let (path, method) = Self::parse_method_and_path(method_path).unwrap();
 
         println!("Headers: {:?}", headers);

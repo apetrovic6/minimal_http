@@ -6,12 +6,11 @@ mod server;
 use std::net::TcpListener;
 use std::{
     collections::HashMap,
-    default, env,
+    env,
     error::Error,
-    fs::{self, File},
-    io::{BufRead, BufReader, BufWriter, Read, Write},
+    fs::{self},
+    io::{BufReader, Read, Write},
     net::TcpStream,
-    time::Instant,
 };
 
 use codecrafters_http_server::ThreadPool;
@@ -19,10 +18,15 @@ use flate2::{write::GzEncoder, Compression};
 use models::{
     encoding::EncodingType,
     method::Method,
-    request::{self, ReqError, Request},
+    request::{ReqError, Request},
     response::{Response, Status},
 };
 use server::{App, MethodHandlerMap};
+
+fn manjo_handler(req: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
+    println!("Jebem boga\nReq:{:?}", req);
+    Ok(())
+}
 
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -34,20 +38,25 @@ fn main() {
 
     // let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
-    let app = App::new("127.0.0.1:4221").build();
+    let app = App::new("127.0.0.1:4221")
+        .get("manjo".to_string(), manjo_handler)
+        .build()
+        .run();
 
-    let pool = ThreadPool::new(5);
+    println!("App is this: {:?}", app);
 
-    for stream in app.listener.incoming() {
-        match stream {
-            Ok(mut _stream) => pool.execute(|| {
-                handle_connection(_stream);
-            }),
-            Err(e) => {
-                println!("error: {}", e);
-            }
-        }
-    }
+    // let pool = ThreadPool::new(5);
+    //
+    // for stream in app.listener.incoming() {
+    //     match stream {
+    //         Ok(mut _stream) => pool.execute(|| {
+    //             handle_connection(_stream);
+    //         }),
+    //         Err(e) => {
+    //             println!("error: {}", e);
+    //         }
+    //     }
+    // }
 
     println!("Shutting down.");
 }

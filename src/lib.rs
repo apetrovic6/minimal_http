@@ -3,6 +3,7 @@ use std::{
     thread,
 };
 
+#[derive(Debug)]
 pub struct ThreadPool {
     workers: Vec<Worker>,
     sender: Option<mpsc::Sender<Job>>,
@@ -63,6 +64,7 @@ impl Drop for ThreadPool {
     }
 }
 
+#[derive(Debug)]
 struct Worker {
     id: usize,
     thread: thread::JoinHandle<()>,
