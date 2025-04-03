@@ -13,7 +13,7 @@ use crate::models::{method::Method, request::Request};
 #[derive(Debug)]
 pub struct App {
     pub listener: TcpListener,
-    routes: Arc<HashMap<String, MethodHandlerMap>>,
+    routes: HashMap<String, MethodHandlerMap>,
     pool: ThreadPool,
 }
 
@@ -21,16 +21,13 @@ impl App {
     pub fn new<T: ToSocketAddrs>(addr: T) -> Self {
         Self {
             listener: TcpListener::bind(addr).unwrap(),
-            routes: Arc::new(HashMap::new()),
+            routes: HashMap::new(),
             pool: ThreadPool::new(5),
         }
     }
 
     pub fn get(mut self, route: impl Into<String>, handler: RequestHandler) -> Self {
-        let routes = Arc::get_mut(&mut self.routes);
-        let routes = routes.unwrap();
-
-        let entry = routes.entry(route.into()).or_default();
+        let entry = self.routes.entry(route.into()).or_default();
         entry.entry(Method::Get).or_insert_with(|| handler);
 
         Self {
