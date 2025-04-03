@@ -26,19 +26,34 @@ impl App {
         }
     }
 
-    pub fn get(mut self, route: impl Into<String>, handler: RequestHandler) -> Self {
-        let entry = self.routes.entry(route.into()).or_default();
-        entry.entry(Method::Get).or_insert_with(|| handler);
-
-        Self {
-            routes: self.routes,
-            ..self
-        }
+    pub fn get(self, route: impl Into<String>, handler: RequestHandler) -> Self {
+        self.add_route(Method::Get, route, handler)
     }
 
-    pub fn post(mut self, route: impl Into<String>, handler: RequestHandler) -> Self {
+    pub fn post(self, route: impl Into<String>, handler: RequestHandler) -> Self {
+        self.add_route(Method::Post, route, handler)
+    }
+
+    pub fn patch(self, route: impl Into<String>, handler: RequestHandler) -> Self {
+        self.add_route(Method::Patch, route, handler)
+    }
+
+    pub fn put(self, route: impl Into<String>, handler: RequestHandler) -> Self {
+        self.add_route(Method::Put, route, handler)
+    }
+
+    pub fn delete(self, route: impl Into<String>, handler: RequestHandler) -> Self {
+        self.add_route(Method::Delete, route, handler)
+    }
+
+    fn add_route(
+        mut self,
+        method: Method,
+        route: impl Into<String>,
+        handler: RequestHandler,
+    ) -> Self {
         let entry = self.routes.entry(route.into()).or_default();
-        entry.entry(Method::Post).or_insert_with(|| handler);
+        entry.entry(method).or_insert_with(|| handler);
 
         Self {
             routes: self.routes,
