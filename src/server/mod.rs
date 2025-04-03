@@ -36,11 +36,23 @@ impl App {
         }
     }
 
+    pub fn post(mut self, route: impl Into<String>, handler: RequestHandler) -> Self {
+        let entry = self.routes.entry(route.into()).or_default();
+        entry.entry(Method::Post).or_insert_with(|| handler);
+
+        Self {
+            routes: self.routes,
+            ..self
+        }
+    }
+
     pub fn build(self) -> Arc<Self> {
         Arc::new(self)
     }
 
     pub fn run(self: Arc<Self>) {
+        println!("Routes: {:#?}", self.routes);
+
         for stream in self.listener.incoming() {
             match stream {
                 Ok(stream) => {

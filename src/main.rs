@@ -31,12 +31,19 @@ fn main() {
 
     App::new("127.0.0.1:4221")
         .get("/", root)
-        .get("user-agent", user_agent)
         .get("echo", echo)
+        .get("user-agent", user_agent)
+        .post("echo", test_post)
         .build()
         .run();
 
     println!("Shutting down.");
+}
+
+fn test_post(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
+    println!("Post succesfull");
+
+    Result::Ok(())
 }
 
 fn user_agent(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
