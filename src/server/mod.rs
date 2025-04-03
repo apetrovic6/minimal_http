@@ -26,11 +26,11 @@ impl App {
         }
     }
 
-    pub fn get(mut self, route: String, handler: RequestHandler) -> Self {
+    pub fn get(mut self, route: impl Into<String>, handler: RequestHandler) -> Self {
         let routes = Arc::get_mut(&mut self.routes);
         let routes = routes.unwrap();
 
-        let entry = routes.entry(route).or_default();
+        let entry = routes.entry(route.into()).or_default();
         entry.entry(Method::Get).or_insert_with(|| handler);
 
         Self {

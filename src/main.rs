@@ -23,7 +23,6 @@ use models::{
 use server::{App, MethodHandlerMap};
 
 fn main() {
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
 
     if let Some(file_path) = read_dir_name_from_env() {
@@ -31,8 +30,9 @@ fn main() {
     };
 
     App::new("127.0.0.1:4221")
-        .get("user-agent".to_string(), user_agent)
-        .get("echo".to_string(), echo)
+        .get("/", root)
+        .get("user-agent", user_agent)
+        .get("echo", echo)
         .build()
         .run();
 
@@ -168,44 +168,6 @@ fn setup_routes() -> HashMap<String, MethodHandlerMap> {
     routes.insert(String::from("files"), files_map);
 
     routes
-}
-
-fn handle_connection(mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
-    let mut routes = setup_routes();
-
-    let req = Request::try_from(&mut stream).unwrap();
-
-    println!("Req object: {:?}", req);
-    //  TODO:  Extract content length and type, then read the body in
-    let a: Vec<_> = req.path.split("/").filter(|x| !x.is_empty()).collect::<_>();
-
-    let a = match a.first() {
-        Some(s) => String::from(*s),
-        None => String::from("/"),
-    };
-
-    println!("{:?}", a);
-
-    match routes.get_key_value(&a) {
-        Some((route, route_handler)) => {
-            let entry = route_handler.get_key_value(&req.method);
-
-            match entry {
-                Some((m, handler)) => {
-                    println!("Method: {:?}", m);
-
-                    let _ = handler(&req, &mut stream);
-                }
-                None => send_404(&req, &mut stream),
-            }
-
-            // (route_handler.handler)(&req, &mut stream);
-        }
-        None => {
-            send_404(&req, &mut stream);
-        }
-    }
-    Ok(())
 }
 
 fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
