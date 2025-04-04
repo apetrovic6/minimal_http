@@ -168,7 +168,7 @@ fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
 
     let response = Response {
         status: Status::Ok,
-        content_type: ContentType::OctetStream,
+        content_type: ContentType::TextPlain,
         content_length: ugala.len(),
         body: Some(ugala),
         content_encoding: encoding.to_string(),
