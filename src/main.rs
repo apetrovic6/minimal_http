@@ -1,6 +1,5 @@
 mod models;
 mod router;
-mod routes;
 mod server;
 
 #[allow(unused_imports)]
@@ -17,7 +16,8 @@ use flate2::{write::GzEncoder, Compression};
 use models::{
     encoding::EncodingType,
     request::{ReqError, Request},
-    response::{Response, Status},
+    response::Response,
+    status::Status,
 };
 use router::Router;
 use server::App;
@@ -46,21 +46,13 @@ fn main() {
 }
 
 fn user_agent(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
-    let response = Response {
-        body: Some(request.user_agent.clone().into_bytes()),
-        content_length: request.user_agent.len(),
-        content_type: String::from("text/plain"),
-        status: Status::Ok,
-        ..Default::default()
-    };
-
-    println!("User Agent response: {:?}", response);
-
-    if let Err(e) = stream.write_all(&response.to_bytes()) {
-        eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
-    }
-
-    Result::Ok(())
+    Response::from(
+        Some(request.user_agent.clone().into_bytes()),
+        &request.content_type,
+        "",
+        Status::Ok,
+    )
+    .send(stream)
 }
 
 fn read_dir_name_from_env() -> Option<String> {
@@ -117,9 +109,9 @@ fn files(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>
 }
 
 fn root(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
-    send_200(request, stream);
+    // send_200(request, stream);
 
-    Ok(())
+    Response::from(None, "text/plain", "", Status::Ok).send(stream)
 }
 
 fn files_body(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
@@ -174,7 +166,7 @@ fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
     };
 
     let response = Response {
-        status: models::response::Status::Ok,
+        status: Status::Ok,
         content_type: String::from("text/plain"),
         content_length: ugala.len(),
         body: Some(ugala),
@@ -201,7 +193,7 @@ fn send_200(request: &Request, stream: &mut TcpStream) {
 
 fn send_201(request: &Request, stream: &mut TcpStream) {
     let response = Response {
-        status: models::response::Status::Created,
+        status: Status::Created,
         content_type: String::from("text/plain"),
         content_length: 0,
         body: None,

@@ -25,7 +25,6 @@ pub struct ReqError {
 
 impl Request {
     fn parse_method_and_path(strings: Vec<&str>) -> Result<(String, Method), ReqError> {
-        println!("strings: {:?}", strings);
         let [method, path, _]: [_; 3] = strings.try_into().ok().unwrap();
 
         let method = match method.parse::<Method>() {
@@ -107,8 +106,6 @@ impl Request {
             .iter()
             .map(|e| e.parse::<EncodingType>().unwrap())
             .collect::<Vec<_>>();
-
-        println!("Converted Encoding: {:?}", encodings);
 
         request.host = host;
         request.content_type = content_type;

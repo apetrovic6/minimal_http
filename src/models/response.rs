@@ -1,4 +1,6 @@
-use std::fmt::{self, Display};
+use std::{error::Error, io::Write, net::TcpStream};
+
+use super::status::Status;
 
 #[derive(Debug, Default)]
 pub struct Response {
@@ -10,6 +12,21 @@ pub struct Response {
 }
 
 impl Response {
+    pub fn from(
+        mut body: Option<Vec<u8>>,
+        content_type: impl Into<String>,
+        content_encoding: impl Into<String>,
+        status: Status,
+    ) -> Self {
+        Self {
+            status,
+            content_type: content_type.into(),
+            content_length: body.get_or_insert(Vec::new()).len(),
+            content_encoding: content_encoding.into(),
+            body,
+        }
+    }
+
     pub fn to_bytes(&self) -> Vec<u8> {
         let body = self.body.as_deref().unwrap_or(&[]);
 
@@ -18,28 +35,18 @@ impl Response {
             self.status, self.content_type, self.content_length, self.content_encoding
         );
         let mut response = Vec::with_capacity(headers.len() + body.len());
+
         response.extend_from_slice(headers.as_bytes());
         response.extend_from_slice(body);
 
         response
     }
-}
 
-#[derive(Debug, Copy, Clone, Default)]
-pub enum Status {
-    #[default]
-    Ok = 200,
-    Created = 201,
-    Accepted = 202,
-}
-
-impl Display for Status {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-        let status_code = *self as i32;
-        match self {
-            Status::Ok => write!(f, "{} OK", status_code),
-            Status::Created => write!(f, "{} Created", status_code),
-            Status::Accepted => write!(f, "{} Accepted", status_code),
+    pub fn send(&self, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
+        if let Err(e) = stream.write_all(&self.to_bytes()) {
+            eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
         }
+
+        Result::Ok(())
     }
 }
