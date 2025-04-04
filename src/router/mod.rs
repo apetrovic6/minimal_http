@@ -20,6 +20,12 @@ impl Router {
         }
     }
 
+    pub fn route(mut self, sub: Router) -> Self {
+        self.sub_routers.push(sub);
+
+        self
+    }
+
     pub fn get(mut self, path: &str, handler: RequestHandler) -> Self {
         self.add(Method::Get, path, handler);
 
@@ -51,8 +57,10 @@ impl Router {
     }
 
     pub fn add(&mut self, method: Method, path: &str, handler: RequestHandler) {
+        println!("Path: {}", path);
+        println!("Base: {}", self.base);
         let full_path = format!(
-            "{}{}",
+            "{}/{}",
             self.base.trim_end_matches("/"),
             path.trim_start_matches("/")
         );
@@ -62,6 +70,24 @@ impl Router {
     }
 
     pub fn into_routes(self) -> HashMap<String, MethodHandlerMap> {
-        self.routes
+        let mut all_routes = self.routes;
+
+        for sub in self.sub_routers {
+            let nested = sub.into_routes();
+
+            for (sub_path, methods) in nested {
+                let full_path = format!(
+                    "{}/{}",
+                    self.base.trim_end_matches("/"),
+                    sub_path.trim_start_matches("/")
+                )
+                .trim_end_matches("/")
+                .to_string();
+
+                all_routes.entry(full_path).or_default().extend(methods);
+            }
+        }
+
+        all_routes
     }
 }

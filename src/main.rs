@@ -30,14 +30,15 @@ fn main() {
     };
 
     let file_router = Router::new("files").get("", files).post("", files_body);
+    // .route(Router::new("test").get("manjo", files).delete("", files));
 
     App::new("127.0.0.1:4221")
         .get("/", root)
         .get("echo", echo)
         .get("user-agent", user_agent)
-        .with_router(file_router)
-        // .get("files", files)
-        // .post("files", files_body)
+        .get("files", files)
+        .post("files", files_body)
+        // .with_router(file_router)
         .build()
         .run();
 
