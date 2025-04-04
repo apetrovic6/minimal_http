@@ -48,7 +48,7 @@ fn main() {
 fn user_agent(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
     Response::from(
         Some(request.user_agent.clone().into_bytes()),
-        &request.content_type,
+        "text/plain",
         "",
         Status::Ok,
     )
