@@ -1,11 +1,11 @@
 use std::{error::Error, io::Write, net::TcpStream};
 
-use super::status::Status;
+use super::{content_type::ContentType, status::Status};
 
 #[derive(Debug, Default)]
 pub struct Response {
     pub status: Status,
-    pub content_type: String,
+    pub content_type: ContentType,
     pub content_length: usize,
     pub content_encoding: String,
     pub body: Option<Vec<u8>>,
@@ -14,7 +14,7 @@ pub struct Response {
 impl Response {
     pub fn from(
         mut body: Option<Vec<u8>>,
-        content_type: impl Into<String>,
+        content_type: ContentType,
         content_encoding: impl Into<String>,
         status: Status,
     ) -> Self {
