@@ -140,15 +140,6 @@ fn files_body(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn E
         file.write_all(request.body.as_bytes())?;
 
         println!("file path name: {:?}", &file_path_name);
-        send_201(request, stream);
-
-        // let response = Response {
-        //     status: Status::Created,
-        //     content_type: ContentType::OctetStream,
-        //     content_length: 0,
-        //     body: None,
-        //     ..Default::default()
-        // };
 
         let _ = Response::from(None, ContentType::OctetStream, "", Status::Created).send(stream);
     };

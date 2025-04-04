@@ -20,7 +20,7 @@ impl Response {
     ) -> Self {
         Self {
             status,
-            content_type: content_type.into(),
+            content_type,
             content_length: body.get_or_insert(Vec::new()).len(),
             content_encoding: content_encoding.into(),
             body,
