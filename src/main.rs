@@ -141,7 +141,17 @@ fn files_body(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn E
 
         println!("file path name: {:?}", &file_path_name);
         send_201(request, stream);
-    }
+
+        // let response = Response {
+        //     status: Status::Created,
+        //     content_type: ContentType::OctetStream,
+        //     content_length: 0,
+        //     body: None,
+        //     ..Default::default()
+        // };
+
+        let _ = Response::from(None, ContentType::OctetStream, "", Status::Created).send(stream);
+    };
     Ok(())
 }
 
@@ -166,19 +176,13 @@ fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
         Vec::from(response_body.as_bytes())
     };
 
-    let response = Response {
-        status: Status::Ok,
-        content_type: ContentType::TextPlain,
-        content_length: ugala.len(),
-        body: Some(ugala),
-        content_encoding: encoding.to_string(),
-    };
-
-    if let Err(e) = stream.write_all(&response.to_bytes()) {
-        eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
-    }
-
-    Ok(())
+    Response::from(
+        Some(ugala),
+        ContentType::TextPlain,
+        encoding.to_string(),
+        Status::Ok,
+    )
+    .send(stream)
 }
 
 fn send_201(request: &Request, stream: &mut TcpStream) {
