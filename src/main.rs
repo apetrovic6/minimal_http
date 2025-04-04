@@ -14,6 +14,7 @@ use std::{
 
 use flate2::{write::GzEncoder, Compression};
 use models::{
+    content_type::ContentType,
     encoding::EncodingType,
     request::{ReqError, Request},
     response::Response,
@@ -48,7 +49,7 @@ fn main() {
 fn user_agent(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
     Response::from(
         Some(request.user_agent.clone().into_bytes()),
-        "text/plain",
+        ContentType::TextPlain,
         "",
         Status::Ok,
     )
@@ -89,7 +90,7 @@ fn files(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>
 
                 let response = Response {
                     status: Status::Ok,
-                    content_type: String::from("application/octet-stream"),
+                    content_type: ContentType::OctetStream,
                     content_length: res.len(),
                     body: Some(res.into_bytes()),
                     ..Default::default()
@@ -111,7 +112,7 @@ fn files(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>
 fn root(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
     // send_200(request, stream);
 
-    Response::from(None, "text/plain", "", Status::Ok).send(stream)
+    Response::from(None, ContentType::TextPlain, "", Status::Ok).send(stream)
 }
 
 fn files_body(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
@@ -167,7 +168,7 @@ fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
 
     let response = Response {
         status: Status::Ok,
-        content_type: String::from("text/plain"),
+        content_type: ContentType::OctetStream,
         content_length: ugala.len(),
         body: Some(ugala),
         content_encoding: encoding.to_string(),
@@ -194,7 +195,7 @@ fn send_200(request: &Request, stream: &mut TcpStream) {
 fn send_201(request: &Request, stream: &mut TcpStream) {
     let response = Response {
         status: Status::Created,
-        content_type: String::from("text/plain"),
+        content_type: ContentType::OctetStream,
         content_length: 0,
         body: None,
         ..Default::default()
