@@ -181,17 +181,6 @@ fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
     Ok(())
 }
 
-fn send_200(request: &Request, stream: &mut TcpStream) {
-    let str = String::from("HTTP/1.1 200 OK\r\n\r\n");
-
-    let buf = str.into_bytes();
-
-    println!("sending 200");
-    if let Err(e) = stream.write_all(buf.as_slice()) {
-        eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
-    }
-}
-
 fn send_201(request: &Request, stream: &mut TcpStream) {
     let response = Response {
         status: Status::Created,
