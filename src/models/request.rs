@@ -3,6 +3,8 @@ use std::{
     net::TcpStream,
 };
 
+use crate::models::headers::Headers;
+
 use super::{encoding::EncodingType, method::Method};
 
 #[derive(Debug, Default)]
@@ -78,9 +80,10 @@ impl Request {
             headers.push(line);
         }
 
-        let content_length = Self::parse_string_from_header("Content-Length", &headers)
-            .parse::<usize>()
-            .unwrap_or_default();
+        let content_length =
+            Self::parse_string_from_header(Headers::ContentLength.to_string().as_str(), &headers)
+                .parse::<usize>()
+                .unwrap_or_default();
 
         let method_path: Vec<&str> = headers.first().unwrap().split(' ').collect();
 
