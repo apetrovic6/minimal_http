@@ -5,6 +5,7 @@ use strum::Display;
 pub enum EncodingType {
     #[strum(to_string = "gzip")]
     Gzip,
+    #[strum(to_string = "")]
     None,
 }
 
