@@ -14,6 +14,7 @@ use crate::{
         method::Method,
         request::{ReqError, Request},
         response::Response,
+        status::Status,
     },
     router::Router,
 };
@@ -71,8 +72,6 @@ impl App {
         }
     }
 
-    pub fn add_router(self) {}
-
     pub fn build(self) -> Arc<Self> {
         Arc::new(self)
     }
@@ -99,7 +98,9 @@ impl App {
     }
 
     fn handle_connection(&self, mut stream: TcpStream) -> Result<(), Box<dyn Error>> {
-        let req = Request::try_from(&mut stream).unwrap();
+        let Ok(req) = Request::try_from(&mut stream) else {
+            return Ok(());
+        };
 
         println!("Req object: {:?}", req);
         //  TODO:  Extract content length and type, then read the body in
@@ -147,13 +148,10 @@ impl App {
         self
     }
 
-    fn send_404(request: &Request, stream: &mut TcpStream) {
-        let str = String::from("HTTP/1.1 404 Not Found\r\n\r\n");
+    fn send_404(_: &Request, stream: &mut TcpStream) {
+        let res = Response::default().status(Status::NotFound).to_bytes();
 
-        let buf = str.into_bytes();
-
-        println!("sending 404");
-        if let Err(e) = stream.write_all(buf.as_slice()) {
+        if let Err(e) = stream.write_all(&res) {
             eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
         }
     }
