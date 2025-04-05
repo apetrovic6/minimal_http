@@ -41,18 +41,22 @@ impl App {
         self.add_route(Method::Get, route, handler)
     }
 
+    #[allow(dead_code)]
     pub fn post(self, route: impl Into<String>, handler: RequestHandler) -> Self {
         self.add_route(Method::Post, route, handler)
     }
 
+    #[allow(dead_code)]
     pub fn patch(self, route: impl Into<String>, handler: RequestHandler) -> Self {
         self.add_route(Method::Patch, route, handler)
     }
 
+    #[allow(dead_code)]
     pub fn put(self, route: impl Into<String>, handler: RequestHandler) -> Self {
         self.add_route(Method::Put, route, handler)
     }
 
+    #[allow(dead_code)]
     pub fn delete(self, route: impl Into<String>, handler: RequestHandler) -> Self {
         self.add_route(Method::Delete, route, handler)
     }
