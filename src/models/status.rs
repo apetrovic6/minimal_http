@@ -1,27 +1,14 @@
-use std::fmt::{self, Display};
+use strum::Display;
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, Display)]
 pub enum Status {
     #[default]
+    #[strum(to_string = "200 OK")]
     Ok = 200,
+    #[strum(to_string = "201 Created")]
     Created = 201,
+    #[strum(to_string = "202 Accepted")]
     Accepted = 202,
+    #[strum(to_string = "404 Not Found")]
     NotFound = 404,
-}
-
-impl Status {
-    fn description(&self) -> &'static str {
-        match self {
-            Status::Ok => "OK",
-            Status::Created => "Created",
-            Status::Accepted => "Accepted",
-            Status::NotFound => "Not Found",
-        }
-    }
-}
-
-impl Display for Status {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", *self as i32, self.description())
-    }
 }

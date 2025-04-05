@@ -1,25 +1,12 @@
-use std::fmt::Display;
+use strum::Display;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Display)]
 pub enum ContentType {
     #[default]
+    #[strum(to_string = "text/plain")]
     TextPlain,
+    #[strum(to_string = "application/octet-stream")]
     OctetStream,
+    #[strum(to_string = "application/json")]
     Json,
-}
-
-impl ContentType {
-    fn description(&self) -> &'static str {
-        match self {
-            ContentType::TextPlain => "text/plain",
-            ContentType::OctetStream => "application/octet-stream",
-            ContentType::Json => "application/json",
-        }
-    }
-}
-
-impl Display for ContentType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.description())
-    }
 }

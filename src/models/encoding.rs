@@ -9,15 +9,6 @@ pub enum EncodingType {
     None,
 }
 
-// impl EncodingType {
-//     fn description(&self) -> &'static str {
-//         match self {
-//             EncodingType::Gzip => "gzip",
-//             EncodingType::None => "",
-//         }
-//     }
-// }
-//
 impl FromStr for EncodingType {
     type Err = &'static str;
 
@@ -28,9 +19,3 @@ impl FromStr for EncodingType {
         }
     }
 }
-//
-// impl Display for EncodingType {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "{}", self.description())
-//     }
-// }
