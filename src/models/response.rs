@@ -1,6 +1,6 @@
 use super::{content_type::ContentType, encoding::EncodingType, status::Status};
 use flate2::{write::GzEncoder, Compression};
-use std::{error::Error, fmt::Debug, io::Write, net::TcpStream};
+use std::{fmt::Debug, io::Write};
 
 #[derive(Debug, Default)]
 pub struct Response {
@@ -48,8 +48,6 @@ impl Response {
     where
         T: Debug + Into<Vec<u8>>,
     {
-        println!("Encoding 2: {:?}", encoding_type);
-        println!("payload: {:?}", payload);
         if *encoding_type == EncodingType::Gzip {
             let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
             encoder.write_all(&payload.into()).unwrap();

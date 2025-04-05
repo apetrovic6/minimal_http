@@ -110,39 +110,53 @@ impl App {
             None => String::from("/"),
         };
 
-        let response = Response {
-            ..Default::default()
-        };
+        let response = Response::default();
 
         println!("Ugala {:?}", a);
 
-        match self.routes.get_key_value(&a) {
-            Some((_, route_handler)) => {
-                let entry = route_handler.get_key_value(&req.method);
+        let Some((_, route_handler)) = self.routes.get_key_value(&a) else {
+            App::send_404(&req, &mut stream);
+            return Ok(());
+        };
 
-                match entry {
-                    Some((_, handler)) => {
-                        let _ = match handler(&req, response) {
-                            Ok(res) => {
-                                if let Err(e) = stream.write(&res.to_bytes()) {
-                                    eprintln!("Failed to write response: {:?}", e);
-                                    // Prevent shutdown on a failed write
-                                }
+        let Some((_, handler)) = route_handler.get_key_value(&req.method) else {
+            App::send_404(&req, &mut stream);
+            return Ok(());
+        };
 
-                                Result::Ok(())
-                            }
-                            Err(err) => Err(err),
-                        };
-                    }
-                    None => App::send_404(&req, &mut stream),
+        match handler(&req, response) {
+            Ok(res) => {
+                if let Err(e) = stream.write(&res.to_bytes()) {
+                    eprintln!("Failed to write response: {:?}", e);
                 }
-
-                // (route_handler.handler)(&req, &mut stream);
             }
-            None => {
-                App::send_404(&req, &mut stream);
-            }
+            Err(err) => return Err(err),
         }
+
+        // match self.routes.get_key_value(&a) {
+        //     Some((_, route_handler)) => {
+        //         let entry = route_handler.get_key_value(&req.method);
+        //
+        //         match entry {
+        //             Some((_, handler)) => {
+        //                 let _ = match handler(&req, response) {
+        //                     Ok(res) => {
+        //                         if let Err(e) = stream.write(&res.to_bytes()) {
+        //                             eprintln!("Failed to write response: {:?}", e);
+        //                         }
+        //
+        //                         Result::Ok(())
+        //                     }
+        //                     Err(err) => Err(err),
+        //                 };
+        //             }
+        //             None => App::send_404(&req, &mut stream),
+        //         }
+        //     }
+        //     None => {
+        //         App::send_404(&req, &mut stream);
+        //     }
+        // }
         Ok(())
     }
 
