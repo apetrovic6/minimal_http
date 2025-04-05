@@ -115,7 +115,7 @@ impl App {
             ..Default::default()
         };
 
-        println!("{:?}", a);
+        println!("Ugala {:?}", a);
 
         match self.routes.get_key_value(&a) {
             Some((_, route_handler)) => {
@@ -125,8 +125,12 @@ impl App {
                     Some((_, handler)) => {
                         let _ = match handler(&req, response) {
                             Ok(res) => {
-                                let _ = stream.write_all(&res.to_bytes());
-                                Ok::<(), Box<dyn Error>>(())
+                                if let Err(e) = stream.write_all(&res.to_bytes()) {
+                                    eprintln!("Failed to write response: {:?}", e);
+                                    // Prevent shutdown on a failed write
+                                }
+
+                                Result::Ok(())
                             }
                             Err(err) => Err(err),
                         };

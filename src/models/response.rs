@@ -7,7 +7,6 @@ pub struct Response {
     pub status: Status,
     pub content_type: ContentType,
     pub content_length: usize,
-    pub content_encoding: EncodingType,
     pub encoding_type: EncodingType,
     pub body: Option<Vec<u8>>,
 }
@@ -17,15 +16,14 @@ impl Response {
         mut body: Option<Vec<u8>>,
         content_type: ContentType,
         status: Status,
-        content_encoding: EncodingType,
+        encoding_type: EncodingType,
     ) -> Self {
         Self {
             status,
             content_type,
             content_length: body.get_or_insert(Vec::new()).len(),
-            content_encoding,
+            encoding_type,
             body,
-            ..Default::default()
         }
     }
 
@@ -34,7 +32,7 @@ impl Response {
 
         let headers = format!(
             "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nContent-Encoding: {}\r\n\r\n",
-            self.status, self.content_type, self.content_length, self.content_encoding
+            self.status, self.content_type, self.content_length, self.encoding_type
         );
         let mut response = Vec::with_capacity(headers.len() + body.len());
 
@@ -53,12 +51,13 @@ impl Response {
     }
 
     pub fn encode_payload<T: Into<Vec<u8>>>(payload: T, encoding_type: &EncodingType) -> Vec<u8> {
+        println!("Encoding 2: {:?}", encoding_type);
         if *encoding_type == EncodingType::Gzip {
             let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
             encoder.write_all(&payload.into()).unwrap();
             encoder.finish().unwrap()
         } else {
-            Vec::from(payload.into())
+            payload.into()
         }
     }
 }

@@ -110,7 +110,7 @@ fn files(req: &Request, mut res: Response) -> Result<Response, Box<dyn Error>> {
 fn root(req: &Request, mut res: Response) -> Result<Response, Box<dyn Error>> {
     res.content_type = ContentType::TextPlain;
     res.status = Status::Ok;
-    res.content_encoding = EncodingType::None;
+    res.encoding_type = EncodingType::None;
 
     Ok(res)
 }
@@ -160,6 +160,8 @@ fn echo(request: &Request, mut res: Response) -> Result<Response, Box<dyn Error>
     } else {
         EncodingType::None
     };
+
+    println!("Encoding {:?}", encoding);
 
     let body = Response::encode_payload(response_body, &encoding);
 
