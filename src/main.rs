@@ -129,7 +129,7 @@ fn files_body(request: &Request, res: Response) -> ServerResponse {
 
     println!("file path name: {:?}", &file_path_name);
 
-    res.status(Status::Ok)
+    res.status(Status::Created)
         .content_type(ContentType::OctetStream)
         .into()
 }
