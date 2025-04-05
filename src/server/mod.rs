@@ -111,7 +111,6 @@ impl App {
         };
 
         let response = Response {
-            encoding_type: self.get_encoding(),
             ..Default::default()
         };
 
@@ -125,7 +124,7 @@ impl App {
                     Some((_, handler)) => {
                         let _ = match handler(&req, response) {
                             Ok(res) => {
-                                if let Err(e) = stream.write_all(&res.to_bytes()) {
+                                if let Err(e) = stream.write(&res.to_bytes()) {
                                     eprintln!("Failed to write response: {:?}", e);
                                     // Prevent shutdown on a failed write
                                 }

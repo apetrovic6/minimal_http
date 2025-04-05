@@ -164,7 +164,7 @@ fn echo(request: &Request, mut res: Response) -> Result<Response, Box<dyn Error>
     println!("Encoding {:?}", encoding);
 
     let body = Response::encode_payload(response_body, &encoding);
-
+    println!("Body {:?}", body);
     res.body = Some(body);
     res.content_type = ContentType::TextPlain;
     res.encoding_type = encoding;
