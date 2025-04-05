@@ -1,6 +1,6 @@
-use std::{error::Error, io::Write, net::TcpStream};
-
-use super::{content_type::ContentType, status::Status};
+use super::{content_type::ContentType, encoding::EncodingType, status::Status};
+use flate2::{write::GzEncoder, Compression};
+use std::{error::Error, io::Write, net::TcpStream, simd::ToBytes};
 
 #[derive(Debug, Default)]
 pub struct Response {
@@ -8,6 +8,7 @@ pub struct Response {
     pub content_type: ContentType,
     pub content_length: usize,
     pub content_encoding: String,
+    pub encoding_type: EncodingType,
     pub body: Option<Vec<u8>>,
 }
 
@@ -24,6 +25,7 @@ impl Response {
             content_length: body.get_or_insert(Vec::new()).len(),
             content_encoding: content_encoding.into(),
             body,
+            ..Default::default()
         }
     }
 
@@ -48,5 +50,15 @@ impl Response {
         }
 
         Result::Ok(())
+    }
+
+    pub fn encode_payload<T: Into<Vec<u8>>>(payload: T, encoding_type: &EncodingType) -> Vec<u8> {
+        if *encoding_type == EncodingType::Gzip {
+            let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+            encoder.write_all(&payload.into()).unwrap();
+            encoder.finish().unwrap()
+        } else {
+            Vec::from(payload.into())
+        }
     }
 }

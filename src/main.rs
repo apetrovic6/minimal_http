@@ -145,19 +145,9 @@ fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
         None => String::new(),
     };
 
-    let encoding = if request.accept_encoding.contains(&EncodingType::Gzip) {
-        EncodingType::Gzip
-    } else {
-        EncodingType::None
-    };
+    let encoding = request.get_encoding();
 
-    let body = if encoding == EncodingType::Gzip {
-        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-        encoder.write_all(&response_body.into_bytes()).unwrap();
-        encoder.finish().unwrap()
-    } else {
-        Vec::from(response_body.as_bytes())
-    };
+    let body = Response::encode_payload(response_body, &encoding);
 
     Response::from(
         Some(body),
