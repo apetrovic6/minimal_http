@@ -1,11 +1,10 @@
 use std::str::FromStr;
-use strum::{Display, EnumString};
+use strum::Display;
 
 #[derive(Display, Debug, Hash, Eq, PartialEq)]
 pub enum EncodingType {
     #[strum(to_string = "gzip")]
     Gzip,
-    #[strum(to_string = "")]
     None,
 }
 
