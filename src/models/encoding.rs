@@ -1,5 +1,4 @@
 use std::str::FromStr;
-
 use strum::Display;
 
 #[derive(Display, Debug, Hash, Eq, PartialEq)]
