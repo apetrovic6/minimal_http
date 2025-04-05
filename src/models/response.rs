@@ -2,13 +2,29 @@ use super::{content_type::ContentType, encoding::EncodingType, status::Status};
 use flate2::{write::GzEncoder, Compression};
 use std::{fmt::Debug, io::Write};
 
+pub trait IntoResponse<T> {
+    fn into_response(self) -> Result<T, Box<dyn std::error::Error>>;
+}
+
 #[derive(Debug, Default)]
 pub struct Response {
-    pub status: Status,
-    pub content_type: ContentType,
-    pub content_length: usize,
-    pub encoding_type: EncodingType,
-    pub body: Option<Vec<u8>>,
+    status: Status,
+    content_type: ContentType,
+    content_length: usize,
+    encoding_type: EncodingType,
+    body: Option<Vec<u8>>,
+}
+
+impl From<Response> for Result<Response, Box<dyn std::error::Error>> {
+    fn from(val: Response) -> Self {
+        Ok(val)
+    }
+}
+
+impl IntoResponse<Response> for Response {
+    fn into_response(self) -> Result<Response, Box<dyn std::error::Error>> {
+        Ok(self)
+    }
 }
 
 impl Response {
@@ -25,6 +41,28 @@ impl Response {
             encoding_type,
             body,
         }
+    }
+
+    pub fn status(mut self, status: Status) -> Self {
+        self.status = status;
+
+        self
+    }
+
+    pub fn content_type(mut self, content_type: ContentType) -> Self {
+        self.content_type = content_type;
+        self
+    }
+
+    pub fn encoding_type(mut self, encoding_type: EncodingType) -> Self {
+        self.encoding_type = encoding_type;
+        self
+    }
+
+    pub fn body(mut self, body: Vec<u8>) -> Self {
+        self.body = Some(body);
+
+        self
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {

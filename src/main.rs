@@ -7,15 +7,13 @@ use std::{
     error::Error,
     fs::{self},
     io::{BufReader, Read, Write},
-    net::TcpStream,
-    os,
 };
 
 use models::{
     content_type::ContentType,
     encoding::EncodingType,
     request::{ReqError, Request},
-    response::Response,
+    response::{IntoResponse, Response},
     status::Status,
 };
 use router::Router;
@@ -28,8 +26,10 @@ fn main() {
         let _ = fs::create_dir_all(file_path);
     };
 
-    // let file_router = Router::new("files").get("", files).post("", files_body);
-    // .route(Router::new("test").get("manjo", files).delete("", files));
+    // let file_router = Router::new("files")
+    //     .get("", files)
+    //     .post("", files_body)
+    //     .route(Router::new("test").get("manjo", files).delete("", files));
 
     App::new("127.0.0.1:4221")
         .get("/", root)
@@ -44,18 +44,17 @@ fn main() {
     println!("Shutting down.");
 }
 
-fn user_agent(request: &Request, mut res: Response) -> Result<Response, Box<dyn Error>> {
-    res.body = Some(request.user_agent.clone().into_bytes());
-    res.status = Status::Ok;
-
-    Ok(res)
+fn user_agent(request: &Request, res: Response) -> ServerResponse {
+    res.body(request.user_agent.clone().into_bytes())
+        .status(Status::Ok)
+        .into_response()
 }
 
 fn read_dir_name_from_env() -> Option<String> {
     env::args().last()
 }
 
-fn files(req: &Request, mut res: Response) -> Result<Response, Box<dyn Error>> {
+fn files(req: &Request, res: Response) -> ServerResponse {
     println!("Request: {:?}", req);
 
     let file_path = read_dir_name_from_env();
@@ -73,82 +72,69 @@ fn files(req: &Request, mut res: Response) -> Result<Response, Box<dyn Error>> {
     println!("It werks? {:?}", path);
 
     let Ok(path) = path else {
-        res.status = Status::NotFound;
-
-        return Ok(res);
+        return Ok(res.status(Status::NotFound));
     };
 
     println!("Path: {}", path);
 
     let Ok(f) = fs::File::open(format!("{}{}", file_path.unwrap(), path)) else {
-        res.status = Status::NotFound;
-        println!("ugala");
-        return Ok(res);
+        return res.status(Status::NotFound).into_response();
     };
 
-    // match fs::File::open(format!("{}{}", file_path.unwrap(), path)) {
-    //     Ok(f) => {
     let mut reader = BufReader::new(f);
 
     let mut result = String::new();
 
     reader.read_to_string(&mut result)?;
 
-    res.body = Some(result.into_bytes());
-    res.content_type = ContentType::OctetStream;
-    res.status = Status::Ok;
-
-    Ok(res)
-
-    // }
-    // Err(_) => {
-    //     let _ = Response::from(None, ContentType::TextPlain, "", Status::NotFound).send(res);
-    // }
-    // }
+    res.body(result.into_bytes())
+        .content_type(ContentType::OctetStream)
+        .status(Status::Ok)
+        .into_response()
 }
 
-fn root(req: &Request, mut res: Response) -> Result<Response, Box<dyn Error>> {
-    res.content_type = ContentType::TextPlain;
-    res.status = Status::Ok;
-    res.encoding_type = EncodingType::None;
-
-    Ok(res)
+fn root(_: &Request, res: Response) -> ServerResponse {
+    res.content_type(ContentType::TextPlain)
+        .status(Status::Ok)
+        .encoding_type(EncodingType::None)
+        .into_response()
 }
 
-fn files_body(request: &Request, mut res: Response) -> Result<Response, Box<dyn Error>> {
+fn files_body(request: &Request, res: Response) -> ServerResponse {
     println!("in files body: {:?}", request);
 
-    if let Some(dir) = read_dir_name_from_env() {
-        fs::create_dir_all(&dir)?;
-
-        let path = request
-            .path
-            .split("/")
-            .filter(|p| !p.is_empty())
-            .skip(1)
-            .take(1)
-            .next()
-            .ok_or(ReqError {
-                msg: "Bad request".to_string(),
-            });
-
-        println!("It werks? {:?}", path);
-
-        let file_path_name = format!("{}/{}", dir, path.unwrap());
-        let mut file = fs::File::create_new(&file_path_name)?;
-
-        file.write_all(request.body.as_bytes())?;
-
-        println!("file path name: {:?}", &file_path_name);
-
-        res.content_type = ContentType::OctetStream;
-        res.status = Status::Created;
+    let Some(dir) = read_dir_name_from_env() else {
+        return res.status(Status::NotFound).into_response();
     };
 
-    Ok(res)
+    fs::create_dir_all(&dir)?;
+
+    let path = request
+        .path
+        .split("/")
+        .filter(|p| !p.is_empty())
+        .skip(1)
+        .take(1)
+        .next()
+        .ok_or(ReqError {
+            msg: "Bad request".to_string(),
+        });
+
+    println!("It werks? {:?}", path);
+
+    let file_path_name = format!("{}/{}", dir, path.unwrap());
+    let mut file = fs::File::create_new(&file_path_name)?;
+
+    file.write_all(request.body.as_bytes())?;
+
+    println!("file path name: {:?}", &file_path_name);
+
+    res.status(Status::Ok)
+        .content_type(ContentType::OctetStream)
+        .into()
 }
 
-fn echo(request: &Request, mut res: Response) -> Result<Response, Box<dyn Error>> {
+fn echo(request: &Request, res: Response) -> ServerResponse {
     let req_path: Vec<&str> = request.path.split("/").collect();
     let response_body = match req_path.last() {
         Some(s) => String::from(*s),
@@ -165,9 +151,11 @@ fn echo(request: &Request, mut res: Response) -> Result<Response, Box<dyn Error>
 
     let body = Response::encode_payload(response_body, &encoding);
     println!("Body {:?}", body);
-    res.body = Some(body);
-    res.content_type = ContentType::TextPlain;
-    res.encoding_type = encoding;
 
-    Ok(res)
+    res.body(body)
+        .content_type(ContentType::TextPlain)
+        .encoding_type(encoding)
+        .into()
 }
+
+type ServerResponse = Result<Response, Box<dyn Error>>;
