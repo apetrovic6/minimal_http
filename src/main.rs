@@ -35,8 +35,6 @@ fn main() {
         .get("/", root)
         .get("echo", echo)
         .get("user-agent", user_agent)
-        // .get("files", files)
-        // .post("files", files_body)
         .with_router(file_router)
         .build()
         .run();

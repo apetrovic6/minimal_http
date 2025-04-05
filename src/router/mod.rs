@@ -57,9 +57,6 @@ impl Router {
     }
 
     pub fn add(&mut self, method: Method, path: &str, handler: RequestHandler) {
-        println!("Path: {}", path);
-        println!("Base: {}", self.base);
-
         let full_path = match path.trim() {
             "" => self.base.trim_matches('/').to_string(),
             path => format!(
@@ -68,16 +65,6 @@ impl Router {
                 path.trim_start_matches("/")
             ),
         };
-
-        // let full_path = if path.is_empty() {
-        //     self.base.trim_matches('/').to_string()
-        // } else {
-        //     format!(
-        //         "{}/{}",
-        //         self.base.trim_end_matches("/"),
-        //         path.trim_start_matches("/")
-        //     )
-        // };
 
         let entry = self.routes.entry(full_path).or_default();
         entry.insert(method, handler);
