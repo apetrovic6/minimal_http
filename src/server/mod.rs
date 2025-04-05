@@ -133,30 +133,6 @@ impl App {
             Err(err) => return Err(err),
         }
 
-        // match self.routes.get_key_value(&a) {
-        //     Some((_, route_handler)) => {
-        //         let entry = route_handler.get_key_value(&req.method);
-        //
-        //         match entry {
-        //             Some((_, handler)) => {
-        //                 let _ = match handler(&req, response) {
-        //                     Ok(res) => {
-        //                         if let Err(e) = stream.write(&res.to_bytes()) {
-        //                             eprintln!("Failed to write response: {:?}", e);
-        //                         }
-        //
-        //                         Result::Ok(())
-        //                     }
-        //                     Err(err) => Err(err),
-        //                 };
-        //             }
-        //             None => App::send_404(&req, &mut stream),
-        //         }
-        //     }
-        //     None => {
-        //         App::send_404(&req, &mut stream);
-        //     }
-        // }
         Ok(())
     }
 
