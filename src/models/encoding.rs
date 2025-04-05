@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use strum::{Display, EnumString};
 
-#[derive(Display, Debug, Hash, Eq, PartialEq, EnumString)]
+#[derive(Display, Debug, Hash, Eq, PartialEq)]
 pub enum EncodingType {
     #[strum(to_string = "gzip")]
     Gzip,
