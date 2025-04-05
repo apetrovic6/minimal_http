@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     error::Error,
-    io::Write,
+    io::{ErrorKind, Write},
     net::{TcpListener, TcpStream, ToSocketAddrs},
     sync::Arc,
 };
@@ -9,7 +9,12 @@ use std::{
 use codecrafters_http_server::ThreadPool;
 
 use crate::{
-    models::{method::Method, request::Request},
+    models::{
+        encoding::EncodingType,
+        method::Method,
+        request::{ReqError, Request},
+        response::Response,
+    },
     router::Router,
 };
 
@@ -18,6 +23,7 @@ pub struct App {
     listener: TcpListener,
     routes: HashMap<String, MethodHandlerMap>,
     pool: ThreadPool,
+    encoding_types: Vec<EncodingType>,
 }
 
 impl App {
@@ -26,6 +32,7 @@ impl App {
             listener: TcpListener::bind(addr).expect("Invalid bind address."),
             routes: HashMap::new(),
             pool: ThreadPool::new(5),
+            encoding_types: vec![EncodingType::Gzip],
         }
     }
 
@@ -103,17 +110,26 @@ impl App {
             None => String::from("/"),
         };
 
+        let response = Response {
+            encoding_type: self.get_encoding(),
+            ..Default::default()
+        };
+
         println!("{:?}", a);
 
         match self.routes.get_key_value(&a) {
-            Some((route, route_handler)) => {
+            Some((_, route_handler)) => {
                 let entry = route_handler.get_key_value(&req.method);
 
                 match entry {
-                    Some((m, handler)) => {
-                        println!("Method: {:?}", m);
-
-                        let _ = handler(&req, &mut stream);
+                    Some((_, handler)) => {
+                        let _ = match handler(&req, response) {
+                            Ok(res) => {
+                                let _ = stream.write_all(&res.to_bytes());
+                                Ok::<(), Box<dyn Error>>(())
+                            }
+                            Err(err) => Err(err),
+                        };
                     }
                     None => App::send_404(&req, &mut stream),
                 }
@@ -148,8 +164,16 @@ impl App {
             eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
         }
     }
+
+    pub fn get_encoding(&self) -> EncodingType {
+        if self.encoding_types.contains(&EncodingType::Gzip) {
+            EncodingType::Gzip
+        } else {
+            EncodingType::None
+        }
+    }
 }
 
 pub type MethodHandlerMap = HashMap<Method, RequestHandler>;
 
-pub type RequestHandler = fn(&Request, &mut TcpStream) -> Result<(), Box<dyn Error>>;
+pub type RequestHandler = fn(&Request, Response) -> Result<Response, Box<dyn Error>>;

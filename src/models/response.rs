@@ -7,7 +7,7 @@ pub struct Response {
     pub status: Status,
     pub content_type: ContentType,
     pub content_length: usize,
-    pub content_encoding: String,
+    pub content_encoding: EncodingType,
     pub encoding_type: EncodingType,
     pub body: Option<Vec<u8>>,
 }
@@ -16,14 +16,14 @@ impl Response {
     pub fn from(
         mut body: Option<Vec<u8>>,
         content_type: ContentType,
-        content_encoding: impl Into<String>,
         status: Status,
+        content_encoding: EncodingType,
     ) -> Self {
         Self {
             status,
             content_type,
             content_length: body.get_or_insert(Vec::new()).len(),
-            content_encoding: content_encoding.into(),
+            content_encoding,
             body,
             ..Default::default()
         }

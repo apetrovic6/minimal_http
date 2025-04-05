@@ -119,14 +119,6 @@ impl Request {
         request.accept_encoding = encodings;
         request.body = String::from_utf8(body_bytes).unwrap();
     }
-
-    pub fn get_encoding(&self) -> EncodingType {
-        if self.accept_encoding.contains(&EncodingType::Gzip) {
-            EncodingType::Gzip
-        } else {
-            EncodingType::None
-        }
-    }
 }
 
 impl TryFrom<&mut TcpStream> for Request {

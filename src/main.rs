@@ -8,9 +8,9 @@ use std::{
     fs::{self},
     io::{BufReader, Read, Write},
     net::TcpStream,
+    os,
 };
 
-use flate2::{write::GzEncoder, Compression};
 use models::{
     content_type::ContentType,
     encoding::EncodingType,
@@ -28,7 +28,7 @@ fn main() {
         let _ = fs::create_dir_all(file_path);
     };
 
-    let file_router = Router::new("files").get("", files).post("", files_body);
+    // let file_router = Router::new("files").get("", files).post("", files_body);
     // .route(Router::new("test").get("manjo", files).delete("", files));
 
     App::new("127.0.0.1:4221")
@@ -44,25 +44,22 @@ fn main() {
     println!("Shutting down.");
 }
 
-fn user_agent(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
-    Response::from(
-        Some(request.user_agent.clone().into_bytes()),
-        ContentType::TextPlain,
-        "",
-        Status::Ok,
-    )
-    .send(stream)
+fn user_agent(request: &Request, mut res: Response) -> Result<Response, Box<dyn Error>> {
+    res.body = Some(request.user_agent.clone().into_bytes());
+    res.status = Status::Ok;
+
+    Ok(res)
 }
 
 fn read_dir_name_from_env() -> Option<String> {
     env::args().last()
 }
 
-fn files(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
-    println!("Request: {:?}", request);
+fn files(req: &Request, mut res: Response) -> Result<Response, Box<dyn Error>> {
+    println!("Request: {:?}", req);
 
     let file_path = read_dir_name_from_env();
-    let path = request
+    let path = req
         .path
         .split("/")
         .filter(|p| !p.is_empty())
@@ -75,39 +72,50 @@ fn files(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>
 
     println!("It werks? {:?}", path);
 
-    if let Ok(path) = path {
-        println!("Path: {}", path);
+    let Ok(path) = path else {
+        res.status = Status::NotFound;
 
-        match fs::File::open(format!("{}{}", file_path.unwrap(), path)) {
-            Ok(f) => {
-                let mut reader = BufReader::new(f);
+        return Ok(res);
+    };
 
-                let mut res = String::new();
+    println!("Path: {}", path);
 
-                reader.read_to_string(&mut res)?;
+    let Ok(f) = fs::File::open(format!("{}{}", file_path.unwrap(), path)) else {
+        res.status = Status::NotFound;
+        println!("ugala");
+        return Ok(res);
+    };
 
-                let _ = Response::from(
-                    Some(res.into_bytes()),
-                    ContentType::OctetStream,
-                    "",
-                    Status::Ok,
-                )
-                .send(stream);
-            }
-            Err(_) => {
-                let _ =
-                    Response::from(None, ContentType::TextPlain, "", Status::NotFound).send(stream);
-            }
-        }
-    }
-    Ok(())
+    // match fs::File::open(format!("{}{}", file_path.unwrap(), path)) {
+    //     Ok(f) => {
+    let mut reader = BufReader::new(f);
+
+    let mut result = String::new();
+
+    reader.read_to_string(&mut result)?;
+
+    res.body = Some(result.into_bytes());
+    res.content_type = ContentType::OctetStream;
+    res.status = Status::Ok;
+
+    Ok(res)
+
+    // }
+    // Err(_) => {
+    //     let _ = Response::from(None, ContentType::TextPlain, "", Status::NotFound).send(res);
+    // }
+    // }
 }
 
-fn root(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
-    Response::from(None, ContentType::TextPlain, "", Status::Ok).send(stream)
+fn root(req: &Request, mut res: Response) -> Result<Response, Box<dyn Error>> {
+    res.content_type = ContentType::TextPlain;
+    res.status = Status::Ok;
+    res.content_encoding = EncodingType::None;
+
+    Ok(res)
 }
 
-fn files_body(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
+fn files_body(request: &Request, mut res: Response) -> Result<Response, Box<dyn Error>> {
     println!("in files body: {:?}", request);
 
     if let Some(dir) = read_dir_name_from_env() {
@@ -133,27 +141,31 @@ fn files_body(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn E
 
         println!("file path name: {:?}", &file_path_name);
 
-        let _ = Response::from(None, ContentType::OctetStream, "", Status::Created).send(stream);
+        res.content_type = ContentType::OctetStream;
+        res.status = Status::Created;
     };
-    Ok(())
+
+    Ok(res)
 }
 
-fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
+fn echo(request: &Request, mut res: Response) -> Result<Response, Box<dyn Error>> {
     let req_path: Vec<&str> = request.path.split("/").collect();
     let response_body = match req_path.last() {
         Some(s) => String::from(*s),
         None => String::new(),
     };
 
-    let encoding = request.get_encoding();
+    let encoding = if request.accept_encoding.contains(&EncodingType::Gzip) {
+        EncodingType::Gzip
+    } else {
+        EncodingType::None
+    };
 
     let body = Response::encode_payload(response_body, &encoding);
 
-    Response::from(
-        Some(body),
-        ContentType::TextPlain,
-        encoding.to_string(),
-        Status::Ok,
-    )
-    .send(stream)
+    res.body = Some(body);
+    res.content_type = ContentType::TextPlain;
+    res.encoding_type = encoding;
+
+    Ok(res)
 }
