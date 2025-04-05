@@ -26,10 +26,7 @@ fn main() {
         let _ = fs::create_dir_all(file_path);
     };
 
-    let file_router = Router::new("files")
-        .get("", files)
-        .post("", files_body)
-        .route(Router::new("test").get("manjo", files).delete("", files));
+    let file_router = Router::new("files").get("", files).post("", files_body);
 
     App::new("127.0.0.1:4221")
         .get("/", root)
