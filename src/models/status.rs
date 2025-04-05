@@ -9,14 +9,19 @@ pub enum Status {
     NotFound = 404,
 }
 
+impl Status {
+    fn description(&self) -> &'static str {
+        match self {
+            Status::Ok => "OK",
+            Status::Created => "Created",
+            Status::Accepted => "Accepted",
+            Status::NotFound => "Not Found",
+        }
+    }
+}
+
 impl Display for Status {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-        let status_code = *self as i32;
-        match self {
-            Status::Ok => write!(f, "{} OK", status_code),
-            Status::Created => write!(f, "{} Created", status_code),
-            Status::Accepted => write!(f, "{} Accepted", status_code),
-            Status::NotFound => write!(f, "{} Not Found", status_code),
-        }
+        write!(f, "{} {}", *self as i32, self.description())
     }
 }
