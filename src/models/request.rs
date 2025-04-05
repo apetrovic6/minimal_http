@@ -3,7 +3,7 @@ use std::{
     net::TcpStream,
 };
 
-use crate::models::headers::Headers;
+use crate::models::headers::Header;
 
 use super::{encoding::EncodingType, method::Method};
 
@@ -43,19 +43,19 @@ impl Request {
         Ok((path, method))
     }
 
-    fn parse_string_from_header(query: &str, headers: &[String]) -> String {
+    fn parse_string_from_header(query: Header, headers: &[String]) -> String {
         headers
             .iter()
-            .find(|s| s.contains(query))
+            .find(|s| s.contains(query.to_string().as_str()))
             .and_then(|s| s.split_whitespace().last())
             .map(ToString::to_string)
             .unwrap_or_default()
     }
 
-    fn parse_encodings_from_header(query: &str, headers: &[String]) -> Vec<String> {
+    fn parse_encodings_from_header(query: Header, headers: &[String]) -> Vec<String> {
         headers
             .iter()
-            .find(|s| s.contains(query))
+            .find(|s| s.contains(query.to_string().as_str()))
             .map(|s| {
                 s.split_whitespace()
                     .map(ToString::to_string)
@@ -80,10 +80,9 @@ impl Request {
             headers.push(line);
         }
 
-        let content_length =
-            Self::parse_string_from_header(Headers::ContentLength.to_string().as_str(), &headers)
-                .parse::<usize>()
-                .unwrap_or_default();
+        let content_length = Self::parse_string_from_header(Header::ContentLength, &headers)
+            .parse::<usize>()
+            .unwrap_or_default();
 
         let method_path: Vec<&str> = headers.first().unwrap().split(' ').collect();
 
@@ -92,11 +91,11 @@ impl Request {
 
         println!("Headers: {:?}", headers);
 
-        let host = Self::parse_string_from_header("Host", &headers);
-        let user_agent = Self::parse_string_from_header("User-Agent", &headers);
-        let content_type = Self::parse_string_from_header("Content-Type", &headers);
-        let accept = Self::parse_string_from_header("Accept", &headers);
-        let accept_encoding = Self::parse_encodings_from_header("Accept-Encoding", &headers);
+        let host = Self::parse_string_from_header(Header::Host, &headers);
+        let user_agent = Self::parse_string_from_header(Header::UserAgent, &headers);
+        let content_type = Self::parse_string_from_header(Header::ContentType, &headers);
+        let accept = Self::parse_string_from_header(Header::Accept, &headers);
+        let accept_encoding = Self::parse_encodings_from_header(Header::AcceptEncoding, &headers);
 
         let mut body_bytes = vec![0u8; content_length];
 

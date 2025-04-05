@@ -1,7 +1,7 @@
 use strum::Display;
 
 #[derive(Display)]
-pub enum Headers {
+pub enum Header {
     #[strum(to_string = "Host")]
     Host,
     #[strum(to_string = "User-Agent")]
