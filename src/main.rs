@@ -2,8 +2,6 @@ mod models;
 mod router;
 mod server;
 
-#[allow(unused_imports)]
-use std::net::TcpListener;
 use std::{
     env,
     error::Error,
@@ -88,21 +86,17 @@ fn files(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>
 
                 reader.read_to_string(&mut res)?;
 
-                let response = Response {
-                    status: Status::Ok,
-                    content_type: ContentType::OctetStream,
-                    content_length: res.len(),
-                    body: Some(res.into_bytes()),
-                    ..Default::default()
-                };
-                println!("Response: {:?}", response);
-
-                if let Err(e) = stream.write_all(&response.to_bytes()) {
-                    eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
-                }
+                let _ = Response::from(
+                    Some(res.into_bytes()),
+                    ContentType::OctetStream,
+                    "",
+                    Status::Ok,
+                )
+                .send(stream);
             }
             Err(_) => {
-                send_404(request, stream);
+                let _ =
+                    Response::from(None, ContentType::TextPlain, "", Status::NotFound).send(stream);
             }
         }
     }
@@ -110,8 +104,6 @@ fn files(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>
 }
 
 fn root(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
-    // send_200(request, stream);
-
     Response::from(None, ContentType::TextPlain, "", Status::Ok).send(stream)
 }
 
@@ -159,7 +151,7 @@ fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
         EncodingType::None
     };
 
-    let ugala = if encoding == EncodingType::Gzip {
+    let body = if encoding == EncodingType::Gzip {
         let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
         encoder.write_all(&response_body.into_bytes()).unwrap();
         encoder.finish().unwrap()
@@ -168,36 +160,10 @@ fn echo(request: &Request, stream: &mut TcpStream) -> Result<(), Box<dyn Error>>
     };
 
     Response::from(
-        Some(ugala),
+        Some(body),
         ContentType::TextPlain,
         encoding.to_string(),
         Status::Ok,
     )
     .send(stream)
-}
-
-fn send_201(request: &Request, stream: &mut TcpStream) {
-    let response = Response {
-        status: Status::Created,
-        content_type: ContentType::OctetStream,
-        content_length: 0,
-        body: None,
-        ..Default::default()
-    };
-
-    println!("sending 201");
-    if let Err(e) = stream.write_all(&response.to_bytes()) {
-        eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
-    }
-}
-
-fn send_404(request: &Request, stream: &mut TcpStream) {
-    let str = String::from("HTTP/1.1 404 Not Found\r\n\r\n");
-
-    let buf = str.into_bytes();
-
-    println!("sending 404");
-    if let Err(e) = stream.write_all(buf.as_slice()) {
-        eprintln!("Failed to write response: {:?}", e); // Prevent shutdown on a failed write
-    }
 }
