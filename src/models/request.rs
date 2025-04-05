@@ -46,7 +46,7 @@ impl Request {
     fn parse_string_from_header(query: Header, headers: &[String]) -> String {
         headers
             .iter()
-            .find(|s| s.contains(query.to_string().as_str()))
+            .find(|s| s.contains(&query.to_string()))
             .and_then(|s| s.split_whitespace().last())
             .map(ToString::to_string)
             .unwrap_or_default()
@@ -55,7 +55,7 @@ impl Request {
     fn parse_encodings_from_header(query: Header, headers: &[String]) -> Vec<String> {
         headers
             .iter()
-            .find(|s| s.contains(query.to_string().as_str()))
+            .find(|s| s.contains(&query.to_string()))
             .map(|s| {
                 s.split_whitespace()
                     .map(ToString::to_string)
