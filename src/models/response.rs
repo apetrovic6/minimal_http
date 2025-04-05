@@ -1,6 +1,6 @@
 use super::{content_type::ContentType, encoding::EncodingType, status::Status};
 use flate2::{write::GzEncoder, Compression};
-use std::{error::Error, io::Write, net::TcpStream, simd::ToBytes};
+use std::{error::Error, io::Write, net::TcpStream};
 
 #[derive(Debug, Default)]
 pub struct Response {
