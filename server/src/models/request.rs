@@ -1,4 +1,5 @@
 use std::{
+    error::Error,
     io::{BufRead, BufReader, Read},
     net::TcpStream,
 };
@@ -34,7 +35,7 @@ impl Request {
             Err(_) => {
                 return Err(ReqError {
                     msg: String::from("Wrong Error"),
-                })
+                });
             }
         };
 
@@ -66,7 +67,10 @@ impl Request {
             .unwrap_or_default()
     }
 
-    fn parse_header_and_body(request: &mut Request, stream: &TcpStream) {
+    fn parse_header_and_body(
+        request: &mut Request,
+        stream: &TcpStream,
+    ) -> Result<(), Box<dyn Error>> {
         let mut buf_reader = BufReader::new(stream);
 
         // 1) Read lines until empty line -> headers
@@ -84,7 +88,11 @@ impl Request {
             .parse::<usize>()
             .unwrap_or_default();
 
-        let method_path: Vec<&str> = headers.first().unwrap().split(' ').collect();
+        let method_path: Vec<&str> = headers
+            .first()
+            .ok_or("No request line found in headers")?
+            .split(' ')
+            .collect();
 
         // TODO: Try figuring out the path with PathBuf::from()
         let (path, method) = Self::parse_method_and_path(method_path).unwrap();
@@ -118,6 +126,8 @@ impl Request {
         request.path = path;
         request.accept_encoding = encodings;
         request.body = String::from_utf8(body_bytes).unwrap();
+
+        Ok(())
     }
 }
 
@@ -127,7 +137,9 @@ impl TryFrom<&mut TcpStream> for Request {
     fn try_from(stream: &mut TcpStream) -> Result<Self, Self::Error> {
         let mut request = Self::default();
 
-        Self::parse_header_and_body(&mut request, stream);
+        Self::parse_header_and_body(&mut request, stream).map_err(|_| ReqError {
+            msg: "Something went wrong".to_string(),
+        });
         println!("Request: {:?}", request);
         Ok(request)
     }

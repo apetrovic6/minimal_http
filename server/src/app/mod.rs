@@ -1,12 +1,13 @@
 use std::{
     collections::HashMap,
     error::Error,
-    io::{ErrorKind, Write},
+    io::Write,
     net::{TcpListener, TcpStream, ToSocketAddrs},
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
 };
-
-use codecrafters_http_server::ThreadPool;
 
 use crate::{
     models::{
@@ -17,6 +18,7 @@ use crate::{
         status::Status,
     },
     router::Router,
+    thread_pool::ThreadPool,
 };
 
 #[derive(Debug)]
@@ -25,6 +27,7 @@ pub struct App {
     routes: HashMap<String, MethodHandlerMap>,
     pool: ThreadPool,
     encoding_types: Vec<EncodingType>,
+    shutdown_flag: Arc<AtomicBool>,
 }
 
 impl App {
@@ -34,6 +37,7 @@ impl App {
             routes: HashMap::new(),
             pool: ThreadPool::new(5),
             encoding_types: vec![EncodingType::Gzip],
+            shutdown_flag: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -84,6 +88,10 @@ impl App {
         println!("Routes: {:#?}", self.routes);
 
         for stream in self.listener.incoming() {
+            if self.shutdown_flag.load(std::sync::atomic::Ordering::SeqCst) {
+                println!("Shutdown flag set. Exiting server loop.");
+                break;
+            }
             match stream {
                 Ok(stream) => {
                     let app = Arc::clone(&self);
@@ -167,8 +175,17 @@ impl App {
             EncodingType::None
         }
     }
+
+    pub fn shutdown(&self) {
+        self.shutdown_flag.store(true, Ordering::SeqCst);
+
+        // Send a dummy request to unblock listener
+        let _ = TcpStream::connect(self.listener.local_addr().unwrap());
+    }
 }
 
 pub type MethodHandlerMap = HashMap<Method, RequestHandler>;
 
 pub type RequestHandler = fn(&Request, Response) -> Result<Response, Box<dyn Error>>;
+
+pub type ServerResponse = Result<Response, Box<dyn Error>>;

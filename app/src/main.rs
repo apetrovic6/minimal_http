@@ -1,7 +1,3 @@
-mod models;
-mod router;
-mod server;
-
 use std::{
     env,
     error::Error,
@@ -9,15 +5,20 @@ use std::{
     io::{BufReader, Read, Write},
 };
 
+use server::{
+    app::{self, App, ServerResponse},
+    models, router,
+};
+
+use models::response::IntoResponse;
 use models::{
     content_type::ContentType,
     encoding::EncodingType,
     request::{ReqError, Request},
-    response::{IntoResponse, Response},
+    response::Response,
     status::Status,
 };
 use router::Router;
-use server::App;
 
 fn main() {
     println!("Logs from your program will appear here!");
@@ -46,7 +47,7 @@ fn user_agent(request: &Request, res: Response) -> ServerResponse {
 }
 
 fn read_dir_name_from_env() -> Option<String> {
-    env::args().last()
+    env::args().next_back()
 }
 
 fn files(req: &Request, res: Response) -> ServerResponse {
@@ -152,5 +153,3 @@ fn echo(request: &Request, res: Response) -> ServerResponse {
         .encoding_type(encoding)
         .into()
 }
-
-type ServerResponse = Result<Response, Box<dyn Error>>;

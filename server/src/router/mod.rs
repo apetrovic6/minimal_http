@@ -1,8 +1,8 @@
-use std::{collections::HashMap, fmt::format, string};
+use std::collections::HashMap;
 
 use crate::{
+    app::{MethodHandlerMap, RequestHandler},
     models::method::Method,
-    server::{MethodHandlerMap, RequestHandler},
 };
 
 pub struct Router {
