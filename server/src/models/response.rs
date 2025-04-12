@@ -1,5 +1,5 @@
 use super::{content_type::ContentType, encoding::EncodingType, status::Status};
-use flate2::{write::GzEncoder, Compression};
+use flate2::{Compression, write::GzEncoder};
 use std::{fmt::Debug, io::Write};
 
 pub trait IntoResponse<T> {
@@ -7,6 +7,7 @@ pub trait IntoResponse<T> {
 }
 
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 pub struct Response {
     status: Status,
     content_type: ContentType,
@@ -68,10 +69,12 @@ impl Response {
     pub fn to_bytes(&self) -> Vec<u8> {
         let body = self.body.as_deref().unwrap_or(&[]);
 
-        let headers =
-            format!(
+        let headers = format!(
             "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nContent-Encoding: {}\r\n\r\n",
-            self.status, self.content_type, body.len(), self.encoding_type
+            self.status,
+            self.content_type,
+            body.len(),
+            self.encoding_type
         );
 
         let mut response = Vec::with_capacity(headers.len() + body.len());

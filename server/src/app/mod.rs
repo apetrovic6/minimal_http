@@ -11,10 +11,7 @@ use std::{
 
 use crate::{
     models::{
-        encoding::EncodingType,
-        method::Method,
-        request::{ReqError, Request},
-        response::Response,
+        encoding::EncodingType, method::Method, request::Request, response::Response,
         status::Status,
     },
     router::Router,
@@ -114,20 +111,16 @@ impl App {
             return Ok(());
         };
 
-        println!("Req object: {:?}", req);
-        //  TODO:  Extract content length and type, then read the body in
-        let a: Vec<_> = req.path.split("/").filter(|x| !x.is_empty()).collect::<_>();
+        let route: Vec<_> = req.path.split("/").filter(|x| !x.is_empty()).collect::<_>();
 
-        let a = match a.first() {
+        let route = match route.first() {
             Some(s) => String::from(*s),
             None => String::from("/"),
         };
 
         let response = Response::default();
 
-        println!("Ugala {:?}", a);
-
-        let Some((_, route_handler)) = self.routes.get_key_value(&a) else {
+        let Some((_, route_handler)) = self.routes.get_key_value(&route) else {
             App::send_404(&req, &mut stream);
             return Ok(());
         };

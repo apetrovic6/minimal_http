@@ -1,5 +1,5 @@
 use std::{
-    sync::{mpsc, Arc, Mutex},
+    sync::{Arc, Mutex, mpsc},
     thread,
 };
 
@@ -14,13 +14,6 @@ type Job = Box<dyn FnOnce() + Send + 'static>;
 pub struct PoolCreationError;
 
 impl ThreadPool {
-    /// Create a new ThreadPool
-    ///
-    /// The size is the number of threads in the pool.
-    ///
-    /// # Panics
-    ///
-    /// The `new` function will panic if the size is zero.
     pub fn new(size: usize) -> Self {
         assert!(size > 0);
 
@@ -39,7 +32,7 @@ impl ThreadPool {
         }
     }
 
-    pub fn build(size: usize) -> Result<ThreadPool, PoolCreationError> {
+    pub fn build(_size: usize) -> Result<ThreadPool, PoolCreationError> {
         todo!()
     }
 
@@ -73,16 +66,18 @@ struct Worker {
 impl Worker {
     fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Self {
         // For prod env, use thread::Builder::spawn instead of thread::spawn
-        let thread = thread::spawn(move || loop {
-            let message = receiver.lock().unwrap().recv();
-            match message {
-                Ok(job) => {
-                    println!("Worker {id} got a job; executing.");
-                    job();
-                }
-                Err(_) => {
-                    println!("Worker {id} disconnected; shutting down");
-                    break;
+        let thread = thread::spawn(move || {
+            loop {
+                let message = receiver.lock().unwrap().recv();
+                match message {
+                    Ok(job) => {
+                        println!("Worker {id} got a job; executing.");
+                        job();
+                    }
+                    Err(_) => {
+                        println!("Worker {id} disconnected; shutting down");
+                        break;
+                    }
                 }
             }
         });

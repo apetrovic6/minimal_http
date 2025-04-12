@@ -2,16 +2,16 @@ use strum::Display;
 
 #[derive(Display)]
 pub enum Header {
-    #[strum(to_string = "Host")]
+    #[strum(to_string = "host")]
     Host,
-    #[strum(to_string = "User-Agent")]
+    #[strum(to_string = "user-agent")]
     UserAgent,
-    #[strum(to_string = "Content-Type")]
+    #[strum(to_string = "content-type")]
     ContentType,
-    #[strum(to_string = "Accept")]
+    #[strum(to_string = "accept")]
     Accept,
-    #[strum(to_string = "Accept-Encoding")]
+    #[strum(to_string = "accept-encoding")]
     AcceptEncoding,
-    #[strum(to_string = "Content-Length")]
+    #[strum(to_string = "content-length")]
     ContentLength,
 }
